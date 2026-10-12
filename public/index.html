@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Club Tercer Tiempo - Control de Pagos y Cuotas</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    @media print {
+      body * { visibility: hidden; }
+      #printableReceipt, #printableReceipt * { visibility: visible; }
+      #printableReceipt { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Header / Navbar -->
+  <header class="bg-zinc-950 text-white shadow-xl sticky top-0 z-30 border-b border-emerald-500/30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <div class="flex items-center space-x-3">
+          <img src="/logo.jpg" alt="Escudo Club Tercer Tiempo" class="w-11 h-11 rounded-xl object-contain shadow-md ring-2 ring-emerald-500/80 bg-zinc-900 p-0.5">
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-extrabold text-base sm:text-lg tracking-tight">Club Tercer Tiempo</h1>
+              <span class="bg-emerald-500 text-zinc-950 font-black text-[10px] uppercase px-1.5 py-0.5 rounded shadow">MALARGÜE</span>
+            </div>
+            <p class="text-xs text-emerald-400/90 font-medium">18 Socios Fundadores &bull; Sede Oficial</p>
+          </div>
+        </div>
+
+        <nav class="flex items-center space-x-1 sm:space-x-1.5">
+          <button onclick="setTab('dashboard')" id="tabBtn-dashboard" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-600 text-white shadow-sm">
+            📊 Dashboard
+          </button>
+          <button onclick="setTab('socios')" id="tabBtn-socios" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-300 hover:text-white hover:bg-zinc-800">
+            👥 Socios
+          </button>
+          <button onclick="setTab('cuotas')" id="tabBtn-cuotas" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-300 hover:text-white hover:bg-zinc-800">
+            📅 Cuotas
+          </button>
+          <button onclick="setTab('pagos')" id="tabBtn-pagos" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-300 hover:text-white hover:bg-zinc-800">
+            💳 Caja
+          </button>
+          <button onclick="setTab('tesoreria')" id="tabBtn-tesoreria" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-1.5">
+            <span>📥</span> Conciliar
+            <span id="badgeComprobantesPendientes" class="hidden bg-rose-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full">0</span>
+          </button>
+          <button onclick="setTab('config')" id="tabBtn-config" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-1.5">
+            <span>⚙️</span> Aranceles
+          </button>
+          <a href="/socio.html" target="_blank" class="ml-2 bg-emerald-400 hover:bg-emerald-300 text-zinc-950 font-black px-3 py-1.5 rounded-lg text-xs shadow flex items-center gap-1.5 transition">
+            <span>📱</span> Portal Socio ↗
+          </a>
+          <a href="/asociarme.html" target="_blank" class="bg-zinc-800 hover:bg-zinc-700 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center gap-1.5 transition">
+            <span>📝</span> Afiliación ↗
+          </a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- ========================================== -->
+    <!-- 1. DASHBOARD VIEW -->
+    <!-- ========================================== -->
+    <section id="view-dashboard" class="tab-content space-y-5">
+
+      <!-- Barra Superior Simple: Título y Período -->
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white px-5 py-3.5 rounded-2xl shadow-sm border border-slate-200">
+        <div>
+          <h2 class="text-xl font-black text-slate-900 tracking-tight">Dashboard</h2>
+        </div>
+        <div class="flex items-center gap-2">
+          <input type="month" id="dashPeriodoInput" value="2026-10" onchange="loadDashboard()" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none">
+          <button onclick="openGenerarCuotasModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-sm">
+            + Generar Cuotas
+          </button>
+        </div>
+      </div>
+
+      <!-- 3 Tarjetas Clave Simples -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <!-- Socios -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Socios</p>
+            <h3 id="kpiTotalSocios" class="text-3xl font-black text-slate-900 mt-1">0</h3>
+            <p class="text-xs text-slate-400 mt-1">Padrón activo</p>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center text-xl font-bold">
+            👥
+          </div>
+        </div>
+
+        <!-- Recaudado -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Cobrado en el Mes</p>
+            <h3 id="kpiCobrado" class="text-3xl font-black text-emerald-600 mt-1">$0</h3>
+            <p id="kpiTasaCobro" class="text-xs text-slate-400 mt-1">Tasa: 0%</p>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl font-bold">
+            💰
+          </div>
+        </div>
+
+        <!-- Por Cobrar -->
+        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-bold text-rose-500 uppercase tracking-wider">Por Cobrar</p>
+            <h3 id="kpiPendiente" class="text-3xl font-black text-rose-600 mt-1">$0</h3>
+            <p id="kpiCantPendientes" class="text-xs text-slate-400 mt-1">0 cuotas pendientes</p>
+          </div>
+          <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-bold">
+            ⏳
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráfico Simple y Limpio de Recaudación Mensual -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-3">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <h3 class="font-black text-slate-900 text-base">Recaudación Mensual</h3>
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xs text-slate-400 font-semibold">Año:</span>
+            <select id="selectGraficoAnio" onchange="cargarEstadisticasRecaudacion()" class="bg-slate-50 border border-slate-200 font-bold text-xs text-slate-800 px-2.5 py-1 rounded-lg focus:outline-none cursor-pointer">
+              <!-- Cargado dinámicamente -->
+            </select>
+          </div>
+        </div>
+        <div class="relative h-64 sm:h-72 w-full">
+          <canvas id="canvasGraficoPrincipal"></canvas>
+        </div>
+      </div>
+
+      <!-- Tablas Inferiores: Últimos Cobros y Morosos -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <!-- Últimos Cobros -->
+        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <div class="flex justify-between items-center mb-3">
+            <h3 class="font-bold text-slate-800 text-sm">Últimos Cobros</h3>
+            <button onclick="setTab('pagos')" class="text-xs text-indigo-600 font-semibold hover:underline">Ver todos ➔</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-slate-50 text-slate-400 font-semibold uppercase border-b">
+                <tr>
+                  <th class="py-2 px-3">Recibo</th>
+                  <th class="py-2 px-3">Socio</th>
+                  <th class="py-2 px-3">Concepto</th>
+                  <th class="py-2 px-3">Monto</th>
+                  <th class="py-2 px-3">Medio</th>
+                  <th class="py-2 px-3">Fecha</th>
+                </tr>
+              </thead>
+              <tbody id="dashUltimosPagosTable" class="divide-y divide-slate-100">
+                <!-- Inyectado por JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Socios con Mayor Deuda -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+          <h3 class="font-bold text-rose-600 text-sm mb-3">Socios con Deuda</h3>
+          <div id="dashMorososList" class="space-y-2.5">
+            <!-- Inyectado por JS -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 2. SOCIOS VIEW -->
+    <!-- ========================================== -->
+    <section id="view-socios" class="tab-content hidden space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Padrón de Socios</h2>
+          <p class="text-sm text-slate-500">Administración de miembros, categorías y disciplinas</p>
+        </div>
+        <button onclick="openNuevoSocioModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow transition flex items-center gap-2">
+          <span>➕</span> Nuevo Socio
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center">
+        <div class="flex-1 min-w-[240px]">
+          <input type="text" id="filtroSocioSearch" oninput="loadSocios()" placeholder="Buscar por Nombre, DNI o N° Socio..." class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <select id="filtroSocioCategoria" onchange="loadSocios()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          <option value="">Todas las categorías</option>
+        </select>
+        <select id="filtroSocioEstado" onchange="loadSocios()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          <option value="">Todos los estados</option>
+          <option value="Activo">Activos</option>
+          <option value="Inactivo">Inactivos</option>
+        </select>
+      </div>
+
+      <!-- Tabla Socios -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-xs border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">N° Socio</th>
+                <th class="py-3 px-4">Nombre y Apellido</th>
+                <th class="py-3 px-4">DNI</th>
+                <th class="py-3 px-4">Categoría</th>
+                <th class="py-3 px-4">Disciplinas</th>
+                <th class="py-3 px-4">Estado Cuotas</th>
+                <th class="py-3 px-4 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="sociosTableBody" class="divide-y divide-slate-100">
+              <!-- Inyectado por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 3. CUOTAS VIEW -->
+    <!-- ========================================== -->
+    <section id="view-cuotas" class="tab-content hidden space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Emisión y Cobranza de Cuotas</h2>
+          <p class="text-sm text-slate-500">Control de cuotas mensuales individuales y generación periódica</p>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="openGenerarCuotasModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow transition flex items-center gap-2">
+            <span>⚡</span> Generar Período Masivo
+          </button>
+        </div>
+      </div>
+
+      <!-- Filtros Cuotas -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center">
+        <div class="flex-1 min-w-[200px]">
+          <input type="text" id="filtroCuotaSearch" oninput="loadCuotas()" placeholder="Buscar socio, DNI..." class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Período:</label>
+          <input type="month" id="filtroCuotaPeriodo" value="2026-10" onchange="loadCuotas()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+        </div>
+        <select id="filtroCuotaEstado" onchange="loadCuotas()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          <option value="">Todos los estados</option>
+          <option value="Pendiente">Pendientes</option>
+          <option value="Parcial">Pagos Parciales (con saldo)</option>
+          <option value="Pagada">Pagadas</option>
+          <option value="Vencida">Vencidas</option>
+        </select>
+      </div>
+
+      <!-- Tabla Cuotas -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-xs border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Período</th>
+                <th class="py-3 px-4">Socio</th>
+                <th class="py-3 px-4">Detalle / Concepto</th>
+                <th class="py-3 px-4">Vencimiento</th>
+                <th class="py-3 px-4">Monto</th>
+                <th class="py-3 px-4">Estado</th>
+                <th class="py-3 px-4 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="cuotasTableBody" class="divide-y divide-slate-100">
+              <!-- Inyectado por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 4. PAGOS / HISTORIAL VIEW -->
+    <!-- ========================================== -->
+    <section id="view-pagos" class="tab-content hidden space-y-6">
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <h2 class="text-xl font-bold text-slate-900">Historial de Caja y Comprobantes</h2>
+        <p class="text-sm text-slate-500">Registro histórico de todas las transacciones cobradas</p>
+      </div>
+
+      <!-- Tabla Pagos -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-xs border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">N° Comprobante</th>
+                <th class="py-3 px-4">Fecha y Hora</th>
+                <th class="py-3 px-4">Socio</th>
+                <th class="py-3 px-4">Período / Concepto</th>
+                <th class="py-3 px-4">Monto Cobrado</th>
+                <th class="py-3 px-4">Medio de Pago</th>
+                <th class="py-3 px-4">Cajero / Operador</th>
+                <th class="py-3 px-4 text-right">Recibo</th>
+              </tr>
+            </thead>
+            <tbody id="pagosTableBody" class="divide-y divide-slate-100">
+              <!-- Inyectado por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 5. TESORERÍA / CONCILIACIÓN VIEW -->
+    <!-- ========================================== -->
+    <section id="view-tesoreria" class="tab-content hidden space-y-6">
+      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <div>
+          <h2 class="text-xl font-bold text-slate-900">Bandeja de Validación de Comprobantes</h2>
+          <p class="text-sm text-slate-500">Revisión de transferencias informadas por los socios antes de acreditar en caja</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Estado:</label>
+          <select id="filtroTesoreriaEstado" onchange="loadComprobantesTesoreria()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 font-semibold">
+            <option value="Pendiente">Pendientes de Aprobación</option>
+            <option value="Aprobado">Aprobados</option>
+            <option value="Rechazado">Rechazados</option>
+            <option value="Todos">Todos los comprobantes</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Grid / Tabla de comprobantes -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-xs border-b border-slate-200">
+              <tr>
+                <th class="py-3 px-4">Fecha Subida</th>
+                <th class="py-3 px-4">Socio</th>
+                <th class="py-3 px-4">Cuota / Concepto</th>
+                <th class="py-3 px-4">Monto Declarado</th>
+                <th class="py-3 px-4">Datos Transferencia</th>
+                <th class="py-3 px-4">Comprobante Adjunto</th>
+                <th class="py-3 px-4">Estado</th>
+                <th class="py-3 px-4 text-right">Acciones Tesorero</th>
+              </tr>
+            </thead>
+            <tbody id="tesoreriaTableBody" class="divide-y divide-slate-100">
+              <!-- Inyectado por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 6. CONFIGURACIÓN: ARANCELES Y CUOTAS VIEW -->
+    <!-- ========================================== -->
+    <section id="view-config" class="tab-content hidden space-y-8">
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+        <h2 class="text-xl font-bold text-slate-900">Administración de Aranceles y Cuotas Sociales</h2>
+        <p class="text-sm text-slate-500">Configuración de valores mensuales para emisión masiva y padrón deportivo de Malargüe</p>
+      </div>
+
+      <!-- Tarjeta 1: Categorías y Cuota Base -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+          <div>
+            <h3 class="font-bold text-base text-slate-900 flex items-center gap-2">
+              <span>👥</span> Cuotas Base por Categoría de Socio
+            </h3>
+            <p class="text-xs text-slate-500">Valor de la cuota social que se factura mes a mes a cada integrante</p>
+          </div>
+          <button onclick="abrirModalCategoria()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs px-3 py-2 rounded-xl transition flex items-center gap-1.5">
+            <span>➕</span> Nueva Categoría
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-xs border-b">
+              <tr>
+                <th class="py-2.5 px-3">Categoría</th>
+                <th class="py-2.5 px-3">Descripción Estatutaria</th>
+                <th class="py-2.5 px-3">Cuota Base Mensual</th>
+                <th class="py-2.5 px-3 text-right">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="configCategoriasTableBody" class="divide-y divide-slate-100">
+              <!-- Inyectado por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Tarjeta 2: Disciplinas Deportivas -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+          <div>
+            <h3 class="font-bold text-base text-slate-900 flex items-center gap-2 text-emerald-800">
+              <span>🏆</span> Disciplinas Deportivas y Aranceles
+            </h3>
+            <p class="text-xs text-slate-500">Actividades deportivas oficiales (Fútbol, Atletismo, Handball, Voley, Newcom)</p>
+          </div>
+          <button onclick="abrirModalDisciplina()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl shadow transition flex items-center gap-1.5">
+            <span>➕</span> Agregar Disciplina
+          </button>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-xs border-b">
+              <tr>
+                <th class="py-2.5 px-3">Disciplina</th>
+                <th class="py-2.5 px-3">Profesor / Coordinador</th>
+                <th class="py-2.5 px-3">Días y Horarios</th>
+                <th class="py-2.5 px-3">Arancel Mensual</th>
+                <th class="py-2.5 px-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody id="configDisciplinasTableBody" class="divide-y divide-slate-100">
+              <!-- Inyectado por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODALES DE CONFIGURACIÓN -->
+  <!-- ========================================== -->
+
+  <!-- Modal Editar Cuota Categoría -->
+  <div id="modalEditarCuotaCategoria" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-slate-900">Modificar Valor de Cuota Base</h3>
+        <button onclick="closeModal('modalEditarCuotaCategoria')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <form onsubmit="handleGuardarEditarCategoria(event)" class="space-y-4">
+        <input type="hidden" id="editCatId">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Categoría</label>
+          <input type="text" id="editCatNombre" required class="w-full px-3 py-2 border rounded-xl text-xs font-bold bg-slate-50">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Nuevo Valor de Cuota Base ($)</label>
+          <input type="number" id="editCatCuotaBase" required step="100" min="0" class="w-full px-3 py-2 border rounded-xl text-sm font-black text-emerald-600 focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Descripción</label>
+          <input type="text" id="editCatDescripcion" class="w-full px-3 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeModal('modalEditarCuotaCategoria')" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button type="submit" class="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow">Guardar Cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Agregar / Editar Disciplina -->
+  <div id="modalFormDisciplina" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-slate-900" id="modalDiscTitulo">Agregar Nueva Disciplina</h3>
+        <button onclick="closeModal('modalFormDisciplina')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <form onsubmit="handleGuardarDisciplina(event)" class="space-y-3">
+        <input type="hidden" id="formDiscId">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Nombre de la Disciplina *</label>
+          <input type="text" id="formDiscNombre" required placeholder="Ej: Padel, Gimnasio, Hockey..." class="w-full px-3 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Arancel Mensual ($) *</label>
+          <input type="number" id="formDiscArancel" required step="100" min="0" placeholder="5000" class="w-full px-3 py-2 border rounded-xl text-sm font-black text-emerald-600 focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Profesor / Entrenador</label>
+          <input type="text" id="formDiscProfesor" placeholder="Ej: Prof. Gabriel Gómez" class="w-full px-3 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Días y Horarios</label>
+          <input type="text" id="formDiscHorarios" placeholder="Ej: Lun, Mié y Vie 18:00 a 20:00" class="w-full px-3 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeModal('modalFormDisciplina')" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button type="submit" class="px-4 py-1.5 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow">Guardar Disciplina</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Ver Comprobante Grande -->
+  <div id="modalZoomComprobante" class="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-5 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-sm font-bold text-slate-900" id="zoomCompTitulo">Comprobante de Transferencia</h3>
+        <button onclick="closeModal('modalZoomComprobante')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <div class="max-h-[70vh] overflow-auto flex items-center justify-center bg-slate-100 rounded-2xl p-2 border">
+        <img id="zoomCompImg" src="" alt="Comprobante" class="max-h-[65vh] object-contain rounded-xl">
+      </div>
+      <div class="flex justify-end">
+        <button onclick="closeModal('modalZoomComprobante')" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-xl text-xs font-bold text-slate-700">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Rechazar Comprobante -->
+  <div id="modalRechazarComprobante" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-rose-600">Rechazar Comprobante</h3>
+        <button onclick="closeModal('modalRechazarComprobante')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <p class="text-xs text-slate-600">Indicá el motivo por el cual no se acredita el pago. El socio podrá verlo en su portal para volver a enviarlo:</p>
+      <input type="hidden" id="rechazarCompId">
+      <div>
+        <textarea id="rechazarCompMotivo" rows="3" class="w-full p-3 border rounded-xl text-xs focus:ring-2 focus:ring-rose-500" placeholder="Ej: No se visualiza la acreditación en la cuenta bancaria del club..."></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeModal('modalRechazarComprobante')" class="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+        <button onclick="confirmarRechazoComprobante()" class="px-4 py-1.5 rounded-xl text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white shadow">Confirmar Rechazo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Nuevo Socio -->
+  <div id="modalNuevoSocio" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in duration-200">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-slate-900">Alta de Nuevo Socio</h3>
+        <button onclick="closeModal('modalNuevoSocio')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <form id="formNuevoSocio" onsubmit="handleGuardarSocio(event)" class="space-y-4">
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Nombre *</label>
+            <input type="text" id="socioNombre" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Apellido *</label>
+            <input type="text" id="socioApellido" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">DNI / Documento *</label>
+            <input type="text" id="socioDni" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Teléfono</label>
+            <input type="text" id="socioTelefono" placeholder="+54 11 ..." class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Email</label>
+          <input type="email" id="socioEmail" placeholder="socio@ejemplo.com" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Categoría Social *</label>
+          <select id="socioCategoria" required class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+            <!-- Cargado por JS -->
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Inscripción a Disciplinas (Opcional)</label>
+          <div id="socioDisciplinasCheckboxes" class="space-y-1.5 max-h-32 overflow-y-auto border p-2.5 rounded-xl bg-slate-50 text-xs">
+            <!-- Cargado por JS -->
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="closeModal('modalNuevoSocio')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 shadow">Registrar Socio</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Editar Socio (Todos los campos) -->
+  <div id="modalEditarSocio" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 my-6">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">✏️</span>
+          <div>
+            <h3 class="text-lg font-black text-slate-900" id="modalEditarSocioTitulo">Editar Socio</h3>
+            <p class="text-xs text-slate-400">Modificación integral del padrón y ficha del socio</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modalEditarSocio')" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <form id="formEditarSocio" onsubmit="handleGuardarEditarSocio(event)" class="space-y-4">
+        <input type="hidden" id="editSocioId">
+
+        <div class="max-h-[68vh] overflow-y-auto pr-1 space-y-4 text-xs">
+          <!-- 1. IDENTIFICACIÓN Y MEMBRESÍA -->
+          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
+            <h4 class="font-bold text-slate-900 text-xs border-b pb-1.5 flex items-center gap-1.5 text-indigo-700">
+              <span>🪪</span> 1. IDENTIFICACIÓN Y CATEGORÍA
+            </h4>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">N° de Socio *</label>
+                <input type="text" id="editSocioNumero" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Categoría Social *</label>
+                <select id="editSocioCategoria" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-emerald-500">
+                  <!-- Llenado dinámicamente -->
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Estado Social *</label>
+                <select id="editSocioEstado" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-emerald-500">
+                  <option value="Activo">Activo</option>
+                  <option value="Inactivo">Inactivo</option>
+                  <option value="Suspendido">Suspendido</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Fecha de Alta</label>
+                <input type="date" id="editSocioFechaAlta" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. DATOS PERSONALES -->
+          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
+            <h4 class="font-bold text-slate-900 text-xs border-b pb-1.5 flex items-center gap-1.5 text-emerald-800">
+              <span>👤</span> 2. DATOS PERSONALES Y CONTACTO
+            </h4>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Nombre *</label>
+                <input type="text" id="editSocioNombre" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Apellido *</label>
+                <input type="text" id="editSocioApellido" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">DNI / Documento *</label>
+                <input type="text" id="editSocioDni" required class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-mono font-bold focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Fecha de Nacimiento</label>
+                <input type="date" id="editSocioFechaNac" onchange="calcularEdadEditar()" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Edad</label>
+                <input type="number" id="editSocioEdad" min="1" max="110" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Estado Civil</label>
+                <select id="editSocioEstadoCivil" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+                  <option value="">Seleccionar...</option>
+                  <option value="Soltero/a">Soltero/a</option>
+                  <option value="Casado/a">Casado/a</option>
+                  <option value="Unión Convivencial">Unión Convivencial</option>
+                  <option value="Divorciado/a">Divorciado/a</option>
+                  <option value="Viudo/a">Viudo/a</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Teléfono / WhatsApp</label>
+                <input type="tel" id="editSocioTelefono" placeholder="+54 260 ..." class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Correo Electrónico</label>
+                <input type="email" id="editSocioEmail" placeholder="socio@email.com" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Ocupación / Estudio</label>
+                <input type="text" id="editSocioOcupacion" placeholder="Ej: Empleado, Estudiante" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div class="col-span-2 sm:col-span-3">
+                <label class="block font-bold text-slate-600 mb-1">Dirección / Domicilio</label>
+                <input type="text" id="editSocioDireccion" placeholder="Ej: Calle San Martín 450, Malargüe" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. INFORMACIÓN MÉDICA -->
+          <div class="bg-rose-50/40 p-3.5 rounded-2xl border border-rose-200/60 space-y-3">
+            <h4 class="font-bold text-slate-900 text-xs border-b border-rose-200 pb-1.5 flex items-center gap-1.5 text-rose-800">
+              <span>🩺</span> 3. INFORMACIÓN MÉDICA Y EMERGENCIAS
+            </h4>
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Grupo Sanguíneo</label>
+                <select id="editSocioGrupoSangre" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-emerald-500">
+                  <option value="">No informado</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">¿Posee Obra Social?</label>
+                <select id="editSocioPoseeObraSocial" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs font-bold focus:ring-2 focus:ring-emerald-500">
+                  <option value="NO">NO</option>
+                  <option value="SI">SI</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Nombre de Obra Social</label>
+                <input type="text" id="editSocioNombreObraSocial" placeholder="Ej: OSEP, PAMI, OSDE" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Contacto de Emergencia</label>
+                <input type="text" id="editSocioUrgenciaNombre" placeholder="Nombre y parentesco" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Teléfono de Emergencia</label>
+                <input type="tel" id="editSocioUrgenciaTel" placeholder="Teléfono de urgencia" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Alergias / Condiciones</label>
+                <input type="text" id="editSocioAlergias" placeholder="Alergias o tratamientos" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. DISCIPLINAS DEPORTIVAS -->
+          <div class="bg-emerald-50/50 p-3.5 rounded-2xl border border-emerald-200/70 space-y-2.5">
+            <h4 class="font-bold text-slate-900 text-xs border-b border-emerald-200 pb-1.5 flex items-center justify-between text-emerald-900">
+              <span class="flex items-center gap-1.5"><span>⚽</span> 4. DISCIPLINAS DEPORTIVAS</span>
+              <span class="text-[10px] text-emerald-700 font-normal">Podés marcar o desmarcar actividades</span>
+            </h4>
+            <div id="editSocioDisciplinasCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+              <!-- Cargado dinámicamente -->
+            </div>
+          </div>
+
+          <!-- 5. RESPONSABLES Y PROPONENTE -->
+          <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-3">
+            <h4 class="font-bold text-slate-900 text-xs border-b pb-1.5 flex items-center gap-1.5 text-slate-700">
+              <span>✍️</span> 5. VÍNCULOS INSTITUCIONALES Y AUTORIZACIÓN
+            </h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Tutor / Responsable Legal (si es menor)</label>
+                <input type="text" id="editSocioTutor" placeholder="Nombre y DNI del tutor" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+              <div>
+                <label class="block font-bold text-slate-600 mb-1">Socio Proponente</label>
+                <input type="text" id="editSocioProponente" placeholder="Nombre y N° de socio proponente" class="w-full px-2.5 py-1.5 border border-slate-300 rounded-xl text-xs focus:ring-2 focus:ring-emerald-500">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-2 pt-3 border-t">
+          <button type="button" onclick="closeModal('modalEditarSocio')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow flex items-center gap-1.5">
+            <span>💾</span> Guardar Cambios
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Cobrar Cuota (con soporte de pago parcial / entrega a cuenta) -->
+  <div id="modalCobrarCuota" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="text-lg font-black text-slate-900">Registrar Cobro / Entrega</h3>
+          <p class="text-xs text-slate-500">Cobro total o entrega a cuenta del socio</p>
+        </div>
+        <button onclick="closeModal('modalCobrarCuota')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <form id="formCobrarCuota" onsubmit="handleConfirmarPago(event)" class="space-y-3.5">
+        <input type="hidden" id="cobroCuotaId">
+
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs space-y-1.5">
+          <p><span class="font-bold text-slate-500">Socio:</span> <span id="cobroSocioNombre" class="font-bold text-slate-900"></span></p>
+          <p><span class="font-bold text-slate-500">Período:</span> <span id="cobroPeriodo" class="font-bold text-indigo-700 font-mono"></span> &bull; <span id="cobroConcepto" class="text-slate-700"></span></p>
+          <div class="grid grid-cols-2 gap-2 pt-2 border-t text-xs">
+            <div>
+              <span class="text-slate-400 block text-[10px] font-bold uppercase">Total Cuota</span>
+              <span id="cobroMontoOriginal" class="font-bold text-slate-700"></span>
+            </div>
+            <div>
+              <span class="text-slate-400 block text-[10px] font-bold uppercase">Ya Pagado a Cuenta</span>
+              <span id="cobroMontoYaPagado" class="font-bold text-emerald-600">$0</span>
+            </div>
+          </div>
+          <div class="pt-2 border-t flex justify-between items-center">
+            <span class="font-bold text-slate-700 text-xs">Saldo Pendiente a Cobrar:</span>
+            <span id="cobroMontoTotal" class="text-lg font-black text-rose-600"></span>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="text-xs font-bold text-slate-800">Monto que entrega el socio ($) *</label>
+            <button type="button" onclick="setCobroTotal()" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline">
+              Cobrar Saldo Total
+            </button>
+          </div>
+          <div class="relative">
+            <span class="absolute left-3.5 top-2.5 text-slate-400 font-bold text-base">$</span>
+            <input type="number" step="any" min="1" id="cobroMontoAPagar" oninput="actualizarPrevisualizacionCobro()" required class="w-full pl-8 pr-3 py-2 border-2 border-emerald-500 rounded-xl text-lg font-black text-slate-900 focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <div id="cobroDetalleImpacto" class="text-[11px] mt-1.5 font-medium text-slate-700 bg-emerald-50 border border-emerald-200 p-2 rounded-xl">
+            <!-- Dinámico por JS -->
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Medio de Pago *</label>
+          <select id="cobroMedioPago" required class="w-full px-3 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+            <option value="Efectivo">Efectivo en Ventanilla</option>
+            <option value="Transferencia">Transferencia Bancaria (CBU/CVU)</option>
+            <option value="Mercado Pago">Mercado Pago / QR</option>
+            <option value="Tarjeta Débito">Tarjeta de Débito</option>
+            <option value="Tarjeta Crédito">Tarjeta de Crédito</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Observaciones / Nro Comprobante</label>
+          <input type="text" id="cobroObservaciones" placeholder="Ej: Entrega a cuenta en mano / Comprobante N°" class="w-full px-3 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeModal('modalCobrarCuota')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow flex items-center gap-1.5">
+            <span>✅</span> Confirmar Cobro
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Aplicar Descuento / Bonificación a Cuota -->
+  <div id="modalDescuentoCuota" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div>
+          <h3 class="text-lg font-black text-slate-900">Aplicar Descuento / Bonificación</h3>
+          <p class="text-xs text-slate-500">Descuenta la deuda de la cuota sin cobrar en caja</p>
+        </div>
+        <button onclick="closeModal('modalDescuentoCuota')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <form id="formDescuentoCuota" onsubmit="handleGuardarDescuentoCuota(event)" class="space-y-3.5">
+        <input type="hidden" id="descCuotaId">
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-200 text-xs space-y-1">
+          <p><span class="font-bold text-slate-500">Socio:</span> <span id="descSocioNombre" class="font-bold text-slate-900"></span></p>
+          <p><span class="font-bold text-slate-500">Período:</span> <span id="descPeriodo" class="font-bold text-indigo-700"></span></p>
+          <p><span class="font-bold text-slate-500">Monto Original:</span> <span id="descMontoOriginal" class="font-bold text-slate-800"></span></p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Monto a Descontar ($) *</label>
+          <div class="relative">
+            <span class="absolute left-3.5 top-2 text-slate-400 font-bold">$</span>
+            <input type="number" step="any" min="0" id="descMontoDescuento" required class="w-full pl-8 pr-3 py-2 border rounded-xl text-base font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500">
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Este monto se resta directamente del total a pagar de la cuota.</p>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Motivo / Justificación</label>
+          <input type="text" id="descMotivo" placeholder="Ej: Beca deportiva / Convenio / Acuerdo Directiva" class="w-full px-3 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <div class="flex justify-end gap-2 pt-2 border-t">
+          <button type="button" onclick="closeModal('modalDescuentoCuota')" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow">
+            Aplicar Descuento
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Generación Masiva -->
+  <div id="modalGenerarCuotas" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="text-lg font-bold text-slate-900">Emisión Masiva de Cuotas</h3>
+        <button onclick="closeModal('modalGenerarCuotas')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+      <p class="text-sm text-slate-600">
+        Esta acción calculará y emitirá la cuota social y disciplinas para todos los <strong>socios activos</strong> del padrón que aún no tengan cuota generada para el período seleccionado.
+      </p>
+      <div>
+        <label class="block text-xs font-bold text-slate-600 mb-1">Período a Facturar (YYYY-MM):</label>
+        <input type="month" id="masivoPeriodoInput" value="2026-11" class="w-full px-3 py-2 border rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-600 mb-1">Día de Vencimiento:</label>
+        <input type="number" id="masivoDiaVencimiento" value="10" min="1" max="28" class="w-full px-3 py-2 border rounded-xl text-sm focus:ring-2 focus:ring-indigo-500">
+      </div>
+      <div class="flex justify-end gap-2 pt-3 border-t">
+        <button type="button" onclick="closeModal('modalGenerarCuotas')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+        <button onclick="ejecutarGeneracionMasiva()" id="btnEjecutarMasivo" class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 shadow">
+          Generar Cuotas
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Carnet Digital & Acceso QR -->
+  <div id="modalCarnet" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+      <div class="flex justify-between items-center border-b pb-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Carnet Digital de Socio</span>
+        <button onclick="closeModal('modalCarnet')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+
+      <!-- Tarjeta Carnet estilo credencial -->
+      <div class="rounded-2xl p-5 text-white bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 shadow-xl border border-amber-500/30 relative overflow-hidden">
+        <div class="flex items-center gap-3 mb-3">
+          <img src="/logo.jpg" alt="Logo" class="w-12 h-12 rounded-xl object-cover bg-white ring-2 ring-amber-400 shadow-md">
+          <div class="text-left">
+            <p class="text-[10px] uppercase font-bold tracking-widest text-amber-400">Club Tercer Tiempo F.C.</p>
+            <h4 id="carnetNombre" class="text-base font-black leading-tight mt-0.5">Lucas Fernández</h4>
+            <p id="carnetNumero" class="text-xs text-indigo-200 font-mono mt-0.5">SOC-1001</p>
+          </div>
+        </div>
+
+        <div class="bg-white p-3 rounded-2xl w-44 h-44 mx-auto my-3 flex items-center justify-center shadow-inner">
+          <canvas id="carnetQrCanvas"></canvas>
+        </div>
+
+        <div class="mt-3">
+          <div id="carnetBadgeEstado" class="inline-block px-3 py-1 rounded-full text-xs font-black tracking-wide uppercase">
+            <!-- HABILITADO / INHABILITADO -->
+          </div>
+          <p id="carnetDetalleDeuda" class="text-[11px] text-slate-300 mt-1"></p>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-400">Escaneable desde cualquier dispositivo en recepción o molinete.</p>
+    </div>
+  </div>
+
+  <!-- Modal Recibo Digital (Imprimible) -->
+  <div id="modalRecibo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-slate-900">Comprobante de Pago</h3>
+        <button onclick="closeModal('modalRecibo')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+
+      <div id="printableReceipt" class="p-6 border border-slate-200 rounded-2xl bg-white text-slate-800 space-y-4">
+        <div class="text-center border-b pb-3">
+          <h2 class="text-lg font-black tracking-tight text-indigo-950">CLUB TERCER TIEMPO</h2>
+          <p class="text-xs text-slate-500">CUIT: 30-71234567-9 &bull; Sede Social y Deportiva</p>
+          <p id="reciboNro" class="text-sm font-mono font-bold text-indigo-700 mt-1">REC-2026-0001</p>
+        </div>
+
+        <div class="text-xs space-y-1.5 border-b pb-3">
+          <p><span class="font-bold text-slate-500">Fecha y Hora:</span> <span id="reciboFecha"></span></p>
+          <p><span class="font-bold text-slate-500">Socio:</span> <span id="reciboSocio" class="font-bold"></span></p>
+          <p><span class="font-bold text-slate-500">DNI:</span> <span id="reciboDni"></span></p>
+          <p><span class="font-bold text-slate-500">N° Socio:</span> <span id="reciboNroSocio"></span></p>
+        </div>
+
+        <div class="border-b pb-3 text-xs space-y-2">
+          <div class="flex justify-between font-bold text-slate-600">
+            <span>Concepto</span>
+            <span>Importe Cobrado</span>
+          </div>
+          <div class="flex justify-between">
+            <span id="reciboConcepto">Cuota Social</span>
+            <span id="reciboMonto" class="font-black text-slate-900 text-sm"></span>
+          </div>
+          <div id="reciboSaldoContainer" class="hidden flex justify-between text-rose-700 bg-rose-50 px-2 py-1 rounded-lg font-bold">
+            <span>Saldo Deudor Restante:</span>
+            <span id="reciboSaldoRestante">$0</span>
+          </div>
+          <p class="text-[11px] text-slate-500">Forma de pago: <span id="reciboMedio" class="font-semibold text-slate-700"></span></p>
+        </div>
+
+        <div class="text-center pt-2">
+          <span id="reciboBadgeEstado" class="inline-block bg-emerald-100 text-emerald-800 text-xs px-3 py-1 rounded-full font-bold">
+            PAGO ACREDITADO - CUOTA AL DÍA
+          </span>
+          <p class="text-[10px] text-slate-400 mt-2">Operador: <span id="reciboCajero">Admin Recepción</span></p>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t">
+        <button onclick="closeModal('modalRecibo')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Cerrar</button>
+        <button onclick="window.print()" class="px-5 py-2 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-700 shadow flex items-center gap-1.5">
+          <span>🖨️</span> Imprimir Recibo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Ficha de Inscripción y Datos Médicos del Socio -->
+  <div id="modalFichaSocio" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-5 my-8">
+      <div class="flex justify-between items-start border-b pb-4">
+        <div class="flex items-center gap-3">
+          <img src="/logo.jpg" alt="Logo" class="w-12 h-12 rounded-xl object-contain ring-2 ring-emerald-500 bg-zinc-950 p-0.5 shadow">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded-full uppercase">Ficha Oficial</span>
+              <span id="fichaModalNumero" class="font-mono text-xs font-bold text-slate-500"></span>
+            </div>
+            <h3 id="fichaModalNombre" class="text-xl font-black text-slate-900"></h3>
+            <p id="fichaModalCategoria" class="text-xs font-semibold text-emerald-700"></p>
+          </div>
+        </div>
+        <button onclick="closeModal('modalFichaSocio')" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <div class="space-y-4 max-h-[65vh] overflow-y-auto pr-1 text-xs text-slate-700">
+        <!-- 1. Datos Personales -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+          <h4 class="font-black text-slate-900 text-xs border-b pb-1 flex items-center gap-1.5 text-emerald-800">
+            <span>👤</span> 1. DATOS PERSONALES
+          </h4>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div><span class="text-slate-400 block text-[10px] font-bold">DNI</span><span id="fichaModalDni" class="font-bold font-mono"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">FECHA NAC.</span><span id="fichaModalFechaNac" class="font-semibold"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">EDAD</span><span id="fichaModalEdad" class="font-semibold"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">TELÉFONO</span><span id="fichaModalTelefono" class="font-semibold"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">CORREO</span><span id="fichaModalEmail" class="font-semibold truncate block"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">ESTADO CIVIL</span><span id="fichaModalEstadoCivil" class="font-semibold"></span></div>
+            <div class="col-span-2"><span class="text-slate-400 block text-[10px] font-bold">DIRECCIÓN</span><span id="fichaModalDireccion" class="font-semibold"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">OCUPACIÓN / ESTUDIO</span><span id="fichaModalOcupacion" class="font-semibold"></span></div>
+          </div>
+        </div>
+
+        <!-- 2. Información Médica -->
+        <div class="bg-rose-50/50 p-3.5 rounded-2xl border border-rose-200/60 space-y-2">
+          <h4 class="font-black text-slate-900 text-xs border-b border-rose-200 pb-1 flex items-center gap-1.5 text-rose-800">
+            <span>🩺</span> 2. INFORMACIÓN MÉDICA Y EMERGENCIAS
+          </h4>
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            <div><span class="text-slate-400 block text-[10px] font-bold">GRUPO SANGUÍNEO</span><span id="fichaModalGrupoSangre" class="font-black text-rose-700 font-mono text-sm"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">OBRA SOCIAL</span><span id="fichaModalObraSocial" class="font-bold"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">ALERGIAS / CONDICIONES</span><span id="fichaModalAlergias" class="font-medium text-slate-800"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">CONTACTO URGENCIA</span><span id="fichaModalUrgenciaNombre" class="font-bold text-slate-900"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">TEL. URGENCIA</span><span id="fichaModalUrgenciaTel" class="font-mono font-bold text-rose-700"></span></div>
+          </div>
+        </div>
+
+        <!-- 3. Disciplinas e Institucional -->
+        <div class="bg-slate-50 p-3.5 rounded-2xl border border-slate-200 space-y-2">
+          <h4 class="font-black text-slate-900 text-xs border-b pb-1 flex items-center gap-1.5 text-emerald-800">
+            <span>⚽</span> 3. DISCIPLINA Y VÍNCULO INSTITUCIONAL
+          </h4>
+          <div class="grid grid-cols-2 gap-2">
+            <div><span class="text-slate-400 block text-[10px] font-bold">DISCIPLINAS EN LAS QUE PARTICIPA</span><span id="fichaModalDisciplinas" class="font-bold text-emerald-700"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">ESTADO DE CUOTAS</span><span id="fichaModalEstadoDeuda"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">TUTOR (SI ES MENOR)</span><span id="fichaModalTutor" class="font-semibold"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">SOCIO PROPONENTE</span><span id="fichaModalProponente" class="font-semibold"></span></div>
+            <div><span class="text-slate-400 block text-[10px] font-bold">FECHA INGRESO</span><span id="fichaModalFechaIngreso" class="font-mono"></span></div>
+          </div>
+        </div>
+
+        <!-- 4. Cuotas y Estado de Cuenta (Interactivo) -->
+        <div class="bg-rose-50/60 p-3.5 rounded-2xl border border-rose-200/80 space-y-2.5">
+          <div class="flex justify-between items-center border-b border-rose-200 pb-1.5">
+            <h4 class="font-black text-rose-950 text-xs flex items-center gap-1.5">
+              <span>💳</span> 4. ESTADO DE CUENTA Y CUOTAS ADEUDADAS
+            </h4>
+            <button id="fichaBtnCancelarTodo" onclick="closeModal('modalFichaSocio'); abrirCuentaSocio(socioActualIdFicha)" class="text-[11px] font-bold text-rose-700 hover:text-rose-900 underline">
+              Administrar Cuenta ❯
+            </button>
+          </div>
+          <div id="fichaModalListaCuotasAdeudadas" class="space-y-1.5">
+            <!-- Inyectado dinámicamente con cuotas y botón cobrar en efectivo -->
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-3 border-t">
+        <button type="button" onclick="closeModal('modalFichaSocio')" class="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100">Cerrar</button>
+        <button type="button" onclick="closeModal('modalFichaSocio'); abrirCuentaSocio(socioActualIdFicha)" class="px-4 py-2 rounded-xl text-sm font-bold bg-rose-600 hover:bg-rose-700 text-white shadow flex items-center gap-1.5">
+          <span>💰</span> Cobrar Deuda
+        </button>
+        <button type="button" onclick="closeModal('modalFichaSocio'); editarSocio(socioActualIdFicha)" class="px-4 py-2 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white shadow flex items-center gap-1.5">
+          <span>✏️</span> Editar Socio
+        </button>
+        <button type="button" onclick="imprimirFichaModal()" class="px-5 py-2 rounded-xl text-sm font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow flex items-center gap-1.5">
+          <span>🖨️</span> Imprimir Ficha
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Estado de Cuenta y Cobro de Deuda de Socio -->
+  <div id="modalCuentaSocio" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-start border-b pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 font-black flex items-center justify-center text-xl shadow-inner">
+            💳
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span id="cuentaSocioNumero" class="font-mono text-xs font-bold text-slate-500"></span>
+              <span id="cuentaSocioCategoria" class="text-xs font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700"></span>
+            </div>
+            <h3 id="cuentaSocioNombre" class="text-xl font-black text-slate-900 leading-tight"></h3>
+            <p id="cuentaSocioDni" class="text-xs text-slate-400 font-mono"></p>
+          </div>
+        </div>
+        <button onclick="closeModal('modalCuentaSocio')" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- Resumen Deuda Total -->
+      <div class="bg-gradient-to-br from-rose-50 to-amber-50 p-4 rounded-2xl border border-rose-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-wider text-rose-800">Deuda Total Pendiente</span>
+          <p id="cuentaSocioTotalDeuda" class="text-2xl font-black text-rose-600 leading-tight">$0</p>
+          <p id="cuentaSocioCantCuotas" class="text-xs text-slate-500 mt-0.5">0 cuota(s) pendiente(s)</p>
+        </div>
+        <button id="btnCuentaCancelarTodo" onclick="cancelarTodaLaDeudaEfectivo()" class="hidden px-4 py-2.5 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-1.5 transition">
+          <span>⚡</span> Cancelar Todo en Efectivo
+        </button>
+      </div>
+
+      <!-- Lista de Cuotas que debe el socio -->
+      <div class="space-y-2">
+        <h4 class="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+          <span>📋</span> Cuotas Adeudadas (Detalle)
+        </h4>
+        <div id="cuentaSocioListaCuotas" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+          <!-- Cargado dinámicamente -->
+        </div>
+      </div>
+
+      <!-- Historial de pagos recientes -->
+      <div class="pt-2 border-t">
+        <details class="text-xs text-slate-500">
+          <summary class="font-bold cursor-pointer hover:text-slate-800">Ver últimos pagos registrados de este socio</summary>
+          <div id="cuentaSocioHistorialPagos" class="mt-2 space-y-1.5 max-h-36 overflow-y-auto pr-1">
+            <!-- Pagos -->
+          </div>
+        </details>
+      </div>
+
+      <div class="flex justify-between items-center pt-3 border-t">
+        <button onclick="closeModal('modalCuentaSocio'); verCarnet(socioActualCuentaId)" class="px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition">
+          🪪 Ver Carnet QR
+        </button>
+        <button onclick="closeModal('modalCuentaSocio')" class="px-5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-400">
+    Club Tercer Tiempo &bull; Sistema de control de socios, cuotas y cobranzas &bull; Base de Datos SQLite
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

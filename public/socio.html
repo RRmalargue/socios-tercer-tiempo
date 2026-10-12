@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal del Socio - Club Tercer Tiempo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen flex flex-col items-center">
+
+  <!-- Header Mobile / Web -->
+  <header class="w-full bg-zinc-950 text-white shadow-xl py-4 px-4 sticky top-0 z-30 border-b border-emerald-500/30">
+    <div class="max-w-md mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <img src="/logo.jpg" alt="Logo" class="w-10 h-10 rounded-xl object-contain ring-2 ring-emerald-500/80 bg-zinc-900 p-0.5 shadow">
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="font-extrabold text-sm sm:text-base leading-tight">Club Tercer Tiempo</h1>
+            <span class="bg-emerald-500 text-zinc-950 font-black text-[9px] uppercase px-1 py-0.2 rounded">MALARGÜE</span>
+          </div>
+          <p class="text-[11px] text-emerald-400 font-medium">Portal de Autogestión del Socio</p>
+        </div>
+      </div>
+      <a href="/" class="text-xs text-zinc-400 hover:text-white font-semibold underline">
+        Panel Admin
+      </a>
+    </div>
+  </header>
+
+  <!-- CONTENIDO PRINCIPAL (MAX-W-MD estilo App de Celular) -->
+  <main class="w-full max-w-md p-4 space-y-4 flex-1">
+
+    <!-- 1. PANTALLA DE ACCESO (LOGIN POR DNI) -->
+    <div id="pantallaLogin" class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 space-y-5 text-center mt-4">
+      <div class="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-inner">
+        ⚽
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-slate-900">Bienvenido al Portal</h2>
+        <p class="text-xs text-slate-500 mt-1">Consultá tus cuotas, descargá tu carnet QR e informá tus pagos por transferencia.</p>
+      </div>
+
+      <form id="formLoginSocio" onsubmit="handleLoginSocio(event)" class="space-y-3 text-left">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">DNI o N° de Socio</label>
+          <input type="text" id="loginInput" required placeholder="Ej: 32104501 o FUND-001" class="w-full px-4 py-3 border border-slate-300 rounded-2xl text-base font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none text-center">
+        </div>
+        <button type="submit" id="btnLogin" class="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-2xl shadow transition text-sm flex items-center justify-center gap-2">
+          <span>Ingresar a mi Cuenta</span> <span>➔</span>
+        </button>
+      </form>
+
+      <div class="pt-3 border-t border-slate-100 text-center">
+        <p class="text-xs text-slate-500 mb-1.5 font-medium">¿Aún no estás registrado en el Club?</p>
+        <a href="/asociarme.html" class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-3 py-1.5 rounded-xl transition">
+          <span>📝</span> Completar Ficha de Inscripción Online ➔
+        </a>
+      </div>
+
+      <div class="pt-2 text-xs text-slate-400">
+        <p class="font-medium">Sugerencias para probar (Fundadores):</p>
+        <div class="flex justify-center gap-2 mt-1">
+          <button onclick="probarLogin('32104501')" class="bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg text-slate-700 font-mono text-[11px]">32104501 (Martín - Al Día)</button>
+          <button onclick="probarLogin('38234513')" class="bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-lg text-slate-700 font-mono text-[11px]">38234513 (Joaquín - En revisión)</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. PANTALLA DEL SOCIO (AUTENTICADO) -->
+    <div id="pantallaPerfil" class="hidden space-y-4">
+
+      <!-- Tarjeta Resumen del Socio -->
+      <div class="bg-gradient-to-br from-zinc-950 via-zinc-900 to-emerald-950 text-white rounded-3xl p-5 shadow-xl border border-emerald-500/30 relative overflow-hidden">
+        <div class="flex justify-between items-start">
+          <div>
+            <span id="perfilCategoria" class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">
+              Socio Fundador
+            </span>
+            <h3 id="perfilNombre" class="text-xl font-black mt-2 leading-tight">Martín Gutiérrez</h3>
+            <p id="perfilNumero" class="text-xs text-zinc-300 font-mono mt-0.5">N° FUND-001 &bull; DNI 32104501</p>
+          </div>
+          <button onclick="cerrarSesionSocio()" class="text-xs bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-xl text-zinc-300 font-medium">
+            Salir
+          </button>
+        </div>
+
+        <!-- Estado de Deuda / Al Día -->
+        <div class="mt-5 pt-3 border-t border-zinc-700/60 flex items-center justify-between">
+          <div>
+            <p class="text-[11px] text-zinc-400 font-semibold uppercase">Estado Actual</p>
+            <div id="perfilEstadoBadge" class="mt-0.5 text-sm font-black">
+              <!-- Inyectado por JS -->
+            </div>
+          </div>
+          <button onclick="abrirCarnetModal()" class="bg-emerald-400 hover:bg-emerald-300 text-zinc-950 font-black text-xs px-3.5 py-2 rounded-xl shadow transition flex items-center gap-1.5">
+            <span>🪪</span> Ver Carnet QR
+          </button>
+        </div>
+      </div>
+
+      <!-- Datos Bancarios para Transferencias -->
+      <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 space-y-2.5">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🏦</span>
+          <h4 class="font-bold text-slate-800 text-sm">Datos para Transferir al Club</h4>
+        </div>
+        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100 text-xs space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-slate-500 font-semibold">Alias:</span>
+            <div class="flex items-center gap-1.5">
+              <span id="bankAlias" class="font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded border">ACTTM2026</span>
+              <button onclick="copiarTexto('bankAlias')" class="text-emerald-700 hover:text-emerald-900 font-bold text-[11px]">Copiar</button>
+            </div>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-500 font-semibold">CBU:</span>
+            <div class="flex items-center gap-1.5">
+              <span id="bankCbu" class="font-mono font-bold text-slate-900 text-[10px] bg-white px-1.5 py-0.5 rounded border">0070123420000012345678</span>
+              <button onclick="copiarTexto('bankCbu')" class="text-emerald-700 hover:text-emerald-900 font-bold text-[11px]">Copiar</button>
+            </div>
+          </div>
+          <p class="text-[10px] text-slate-400 text-center pt-1 border-t">Titular: Asociación Club Tercer Tiempo Malargüe • CUIT: 30-71234567-9</p>
+        </div>
+      </div>
+
+      <!-- Mis Cuotas -->
+      <div class="bg-white rounded-3xl p-4 shadow-sm border border-slate-200 space-y-3">
+        <h4 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+          <span>📅</span> Mis Cuotas y Pagos
+        </h4>
+
+        <div id="listaMisCuotas" class="space-y-2.5">
+          <!-- Inyectado por JS -->
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================== -->
+  <!-- MODAL: SUBIR COMPROBANTE DE TRANSFERENCIA -->
+  <!-- ========================================== -->
+  <div id="modalSubirComprobante" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b pb-2">
+        <h3 class="text-base font-bold text-slate-900">Informar Pago por Transferencia</h3>
+        <button onclick="cerrarSubirModal()" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="bg-indigo-50 p-3 rounded-2xl text-xs space-y-1">
+        <p><span class="font-semibold text-slate-500">Período:</span> <span id="compCuotaPeriodo" class="font-bold text-indigo-900"></span></p>
+        <p><span class="font-semibold text-slate-500">Concepto:</span> <span id="compCuotaConcepto" class="text-slate-700"></span></p>
+        <p><span class="font-semibold text-slate-500">Importe a Cancelar:</span> <span id="compCuotaMonto" class="font-black text-emerald-600 text-sm"></span></p>
+      </div>
+
+      <form id="formSubirComp" onsubmit="handleEnviarComprobante(event)" class="space-y-3">
+        <input type="hidden" id="compCuotaId">
+        <input type="hidden" id="compMontoValor">
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Banco o Billetera de Origen *</label>
+          <input type="text" id="compBanco" required placeholder="Ej: Mercado Pago, Galicia, Santander..." class="w-full px-3 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">N° de Operación / Transferencia</label>
+          <input type="text" id="compNroTransaccion" placeholder="Ej: 98124018" class="w-full px-3 py-2 border rounded-xl text-xs focus:ring-2 focus:ring-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Foto o Captura del Comprobante *</label>
+          <input type="file" id="compArchivo" accept="image/*" required onchange="handlePreviewComprobante(event)" class="w-full text-xs text-slate-500 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100">
+          
+          <!-- Preview Imagen -->
+          <div id="compPreviewContainer" class="hidden mt-2 border rounded-xl overflow-hidden max-h-40 bg-slate-50 flex items-center justify-center">
+            <img id="compPreviewImg" src="" alt="Vista previa" class="max-h-40 object-contain">
+          </div>
+        </div>
+
+        <div class="pt-2 border-t flex justify-end gap-2">
+          <button type="button" onclick="cerrarSubirModal()" class="px-3.5 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">Cancelar</button>
+          <button type="submit" id="btnEnviarComprobante" class="px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 shadow flex items-center gap-1.5">
+            <span>📤</span> Enviar a Tesorería
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL CARNET QR -->
+  <div id="modalCarnetSocio" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+      <div class="flex justify-between items-center border-b pb-2">
+        <span class="text-xs font-bold uppercase tracking-wider text-slate-400">Credencial Digital</span>
+        <button onclick="document.getElementById('modalCarnetSocio').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+      </div>
+
+      <div class="rounded-2xl p-5 text-white bg-gradient-to-br from-indigo-950 via-indigo-900 to-slate-950 shadow-xl border border-amber-500/30">
+        <div class="flex items-center gap-3 mb-2">
+          <img src="/logo.jpg" alt="Logo" class="w-12 h-12 rounded-xl object-cover ring-2 ring-amber-400 bg-white shadow">
+          <div class="text-left">
+            <p class="text-[10px] uppercase font-bold tracking-widest text-amber-400">Club Tercer Tiempo F.C.</p>
+            <h4 id="carnetModalNombre" class="text-base font-black"></h4>
+            <p id="carnetModalNumero" class="text-xs text-indigo-200 font-mono"></p>
+          </div>
+        </div>
+
+        <div class="bg-white p-3 rounded-2xl w-44 h-44 mx-auto my-3 flex items-center justify-center">
+          <canvas id="carnetModalQrCanvas"></canvas>
+        </div>
+
+        <div id="carnetModalBadge" class="inline-block px-3 py-1 rounded-full text-xs font-black tracking-wide uppercase">
+          <!-- HABILITADO / INHABILITADO -->
+        </div>
+      </div>
+      <p class="text-xs text-slate-400">Presentá este código en el acceso al club.</p>
+    </div>
+  </div>
+
+  <script>
+    let socioActual = null;
+    let base64Image = '';
+
+    const formatCurrency = (m) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(m || 0);
+
+    function probarLogin(dni) {
+      document.getElementById('loginInput').value = dni;
+      document.getElementById('formLoginSocio').requestSubmit();
+    }
+
+    async function handleLoginSocio(e) {
+      e.preventDefault();
+      const val = document.getElementById('loginInput').value.trim();
+      if (!val) return;
+
+      const btn = document.getElementById('btnLogin');
+      btn.disabled = true;
+      btn.textContent = 'Buscando...';
+
+      try {
+        const res = await fetch(`/api/socio/perfil?search=${encodeURIComponent(val)}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'No se encontró el socio');
+
+        socioActual = data;
+        renderPerfilSocio();
+      } catch (err) {
+        alert('❌ ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Ingresar a mi Cuenta</span> <span>➔</span>';
+      }
+    }
+
+    function renderPerfilSocio() {
+      document.getElementById('pantallaLogin').classList.add('hidden');
+      document.getElementById('pantallaPerfil').classList.remove('hidden');
+
+      const s = socioActual.socio;
+      document.getElementById('perfilNombre').textContent = `${s.nombre} ${s.apellido}`;
+      const esFundador = s.numero_socio && s.numero_socio.startsWith('FUND-');
+      document.getElementById('perfilCategoria').textContent = esFundador ? `Socio Fundador • ${s.categoria_nombre}` : s.categoria_nombre;
+
+      const badge = document.getElementById('perfilEstadoBadge');
+      if (socioActual.alDia) {
+        badge.innerHTML = '<span class="text-emerald-300 flex items-center gap-1">🟢 Cuota al Día (Habilitado)</span>';
+      } else {
+        badge.innerHTML = `<span class="text-rose-300 flex items-center gap-1">🔴 ${socioActual.cuotasAdeudadas} Cuota(s) Impaga(s) (${formatCurrency(socioActual.totalDeuda)})</span>`;
+      }
+
+      // Render cuotas
+      const container = document.getElementById('listaMisCuotas');
+      container.innerHTML = '';
+
+      if (socioActual.cuotas.length === 0) {
+        container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">No hay cuotas registradas.</p>';
+        return;
+      }
+
+      socioActual.cuotas.forEach(c => {
+        const item = document.createElement('div');
+        item.className = 'p-3.5 rounded-2xl border border-slate-100 bg-slate-50 flex flex-col gap-2';
+
+        let estadoHtml = '';
+        const saldoResta = c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total;
+        const totalPagado = c.total_cobrado || 0;
+
+        if (c.estado === 'Pagada' || saldoResta <= 0) {
+          estadoHtml = `<span class="text-emerald-700 bg-emerald-100 text-[11px] font-bold px-2.5 py-0.5 rounded-full">✓ Pagada</span>`;
+        } else if (c.comprobante_pendiente_id) {
+          estadoHtml = `<span class="text-amber-800 bg-amber-100 text-[11px] font-bold px-2.5 py-0.5 rounded-full">⏳ Comprobante en Revisión</span>`;
+        } else if (c.estado === 'Parcial' || totalPagado > 0) {
+          estadoHtml = `<span class="text-amber-800 bg-amber-100 text-[11px] font-bold px-2.5 py-0.5 rounded-full">🟠 Parcial (Resta: ${formatCurrency(saldoResta)})</span>`;
+        } else {
+          estadoHtml = `<span class="text-rose-700 bg-rose-100 text-[11px] font-bold px-2.5 py-0.5 rounded-full">Pendiente (${formatCurrency(saldoResta)})</span>`;
+        }
+
+        let accionBtn = '';
+        if (c.estado !== 'Pagada' && saldoResta > 0) {
+          if (c.comprobante_pendiente_id) {
+            accionBtn = `<p class="text-[11px] text-amber-700 font-medium italic">Tesorería está revisando tu pago.</p>`;
+          } else {
+            accionBtn = `
+              <button onclick="abrirSubirComprobante(${JSON.stringify(c).replace(/"/g, '&quot;')})" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow flex items-center justify-center gap-1.5 transition">
+                <span>📤</span> Informar Pago / Subir Comprobante
+              </button>
+            `;
+          }
+        }
+
+        item.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="font-bold text-slate-800 text-xs">${c.periodo} &bull; ${c.concepto}</p>
+              <p class="text-[11px] text-slate-400">Vencimiento: ${c.fecha_vencimiento}</p>
+            </div>
+            <div>${estadoHtml}</div>
+          </div>
+          <div class="flex justify-between items-center pt-1 border-t border-slate-200/60 text-xs">
+            <span class="text-slate-500">Monto Cuota: <strong>${formatCurrency(c.monto_total)}</strong></span>
+            ${totalPagado > 0 && saldoResta > 0 ? `<span class="font-black text-rose-600">Resta abonar: ${formatCurrency(saldoResta)}</span>` : ''}
+          </div>
+          ${accionBtn}
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function abrirCarnetModal() {
+      const s = socioActual.socio;
+      document.getElementById('carnetModalNombre').textContent = `${s.nombre} ${s.apellido}`;
+      document.getElementById('carnetModalNumero').textContent = `${s.numero_socio} • ${s.categoria_nombre}`;
+
+      const badge = document.getElementById('carnetModalBadge');
+      if (socioActual.alDia) {
+        badge.className = 'inline-block px-3 py-1 rounded-full text-xs font-black tracking-wide uppercase bg-emerald-500 text-emerald-950';
+        badge.textContent = '🟢 HABILITADO (Cuota al Día)';
+      } else {
+        badge.className = 'inline-block px-3 py-1 rounded-full text-xs font-black tracking-wide uppercase bg-rose-500 text-white';
+        badge.textContent = '🔴 INHABILITADO (Con Deuda)';
+      }
+
+      const canvas = document.getElementById('carnetModalQrCanvas');
+      const qrData = JSON.stringify({
+        id: s.id,
+        socio: s.numero_socio,
+        dni: s.dni,
+        estado: socioActual.alDia ? 'HABILITADO' : 'INHABILITADO'
+      });
+
+      if (window.QRCode) {
+        QRCode.toCanvas(canvas, qrData, { width: 160, margin: 1, color: { dark: '#0f172a', light: '#ffffff' } });
+      }
+
+      document.getElementById('modalCarnetSocio').classList.remove('hidden');
+    }
+
+    function abrirSubirComprobante(cuota) {
+      document.getElementById('compCuotaId').value = cuota.id;
+      document.getElementById('compMontoValor').value = cuota.monto_total;
+      document.getElementById('compCuotaPeriodo').textContent = cuota.periodo;
+      document.getElementById('compCuotaConcepto').textContent = cuota.concepto;
+      document.getElementById('compCuotaMonto').textContent = formatCurrency(cuota.monto_total);
+
+      document.getElementById('compBanco').value = '';
+      document.getElementById('compNroTransaccion').value = '';
+      document.getElementById('compArchivo').value = '';
+      document.getElementById('compPreviewContainer').classList.add('hidden');
+      base64Image = '';
+
+      document.getElementById('modalSubirComprobante').classList.remove('hidden');
+    }
+
+    function cerrarSubirModal() {
+      document.getElementById('modalSubirComprobante').classList.add('hidden');
+    }
+
+    function handlePreviewComprobante(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        base64Image = evt.target.result;
+        document.getElementById('compPreviewImg').src = base64Image;
+        document.getElementById('compPreviewContainer').classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function handleEnviarComprobante(e) {
+      e.preventDefault();
+      const cuota_id = parseInt(document.getElementById('compCuotaId').value);
+      const monto_declarado = parseFloat(document.getElementById('compMontoValor').value);
+      const banco_origen = document.getElementById('compBanco').value.trim();
+      const nro_transaccion = document.getElementById('compNroTransaccion').value.trim();
+
+      const btn = document.getElementById('btnEnviarComprobante');
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+
+      try {
+        const res = await fetch('/api/socio/subir-comprobante', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            socio_id: socioActual.socio.id,
+            cuota_id,
+            banco_origen,
+            nro_transaccion,
+            monto_declarado,
+            archivo_url: base64Image
+          })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Error al enviar comprobante');
+
+        alert('✅ ¡Comprobante enviado exitosamente!\nLa tesorería del club lo validará en breve.');
+        cerrarSubirModal();
+
+        // Recargar perfil
+        const refresh = await fetch(`/api/socio/perfil?search=${encodeURIComponent(socioActual.socio.dni)}`);
+        socioActual = await refresh.json();
+        renderPerfilSocio();
+      } catch (err) {
+        alert('❌ ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>📤</span> Enviar a Tesorería';
+      }
+    }
+
+    function copiarTexto(elementId) {
+      const text = document.getElementById(elementId).textContent;
+      navigator.clipboard.writeText(text);
+      alert('Copiado al portapapeles: ' + text);
+    }
+
+    function cerrarSesionSocio() {
+      socioActual = null;
+      document.getElementById('pantallaPerfil').classList.add('hidden');
+      document.getElementById('pantallaLogin').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
