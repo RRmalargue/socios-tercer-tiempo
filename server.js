@@ -12,6 +12,29 @@ app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // -------------------------------------------------------------
+// SISTEMA DE AUDITORÍA Y DESHACER ACCIONES
+// -------------------------------------------------------------
+function registrarAuditoria(tipo, descripcion, datosAnteriores = null, datosNuevos = null) {
+  try {
+    const fecha = new Date().toISOString().replace('T', ' ').substring(0, 19);
+    const info = db.prepare(`
+      INSERT INTO auditoria_acciones (tipo, descripcion, datos_anteriores, datos_nuevos, fecha, deshecho)
+      VALUES (?, ?, ?, ?, ?, 0)
+    `).run(
+      tipo,
+      descripcion,
+      datosAnteriores ? JSON.stringify(datosAnteriores) : null,
+      datosNuevos ? JSON.stringify(datosNuevos) : null,
+      fecha
+    );
+    return info.lastInsertRowid;
+  } catch (e) {
+    console.error('Error registrando auditoría:', e);
+    return null;
+  }
+}
+
+// -------------------------------------------------------------
 // DASHBOARD
 // -------------------------------------------------------------
 app.get('/api/dashboard', (req, res) => {
@@ -308,6 +331,64 @@ app.delete('/api/disciplinas/:id', (req, res) => {
 });
 
 // -------------------------------------------------------------
+// RESUMEN FINANCIERO POR CATEGORÍA Y PERÍODO
+// -------------------------------------------------------------
+app.get('/api/socios/resumen-periodo', (req, res) => {
+  try {
+    const { periodo = '2026-10', categoria_id, search } = req.query;
+
+    let baseWhere = "WHERE 1=1";
+    const params = [];
+
+    if (categoria_id) {
+      baseWhere += " AND s.categoria_id = ?";
+      params.push(categoria_id);
+    }
+    if (search) {
+      baseWhere += " AND (s.nombre LIKE ? OR s.apellido LIKE ? OR s.dni LIKE ? OR s.numero_socio LIKE ?)";
+      const term = `%${search}%`;
+      params.push(term, term, term, term);
+    }
+
+    // Socios totales en el filtro
+    const sociosQuery = `SELECT COUNT(*) as total_socios FROM socios s ${baseWhere}`;
+    const totalSocios = db.prepare(sociosQuery).get(...params).total_socios;
+
+    // Cuotas del período seleccionado para los socios filtrados
+    const cuotasQuery = `
+      SELECT 
+        COUNT(c.id) as total_cuotas,
+        COALESCE(SUM(c.monto_total), 0) as total_facturado,
+        COALESCE(SUM((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = c.id)), 0) as total_cobrado,
+        COALESCE(SUM(CASE WHEN c.estado = 'Pagada' THEN 1 ELSE 0 END), 0) as cant_pagadas,
+        COALESCE(SUM(CASE WHEN c.estado != 'Pagada' THEN 1 ELSE 0 END), 0) as cant_pendientes
+      FROM cuotas c
+      JOIN socios s ON c.socio_id = s.id
+      ${baseWhere} AND c.periodo = ?
+    `;
+    const stats = db.prepare(cuotasQuery).get(...params, periodo);
+
+    const totalFacturado = stats.total_facturado || 0;
+    const totalCobrado = stats.total_cobrado || 0;
+    const totalAdeudado = Math.max(0, totalFacturado - totalCobrado);
+    const porcentajeCobranza = totalFacturado > 0 ? Math.round((totalCobrado / totalFacturado) * 100) : 0;
+
+    res.json({
+      periodo,
+      totalSocios,
+      totalFacturado,
+      totalCobrado,
+      totalAdeudado,
+      cantPagadas: stats.cant_pagadas,
+      cantPendientes: stats.cant_pendientes,
+      porcentajeCobranza
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -------------------------------------------------------------
 // SOCIOS
 // -------------------------------------------------------------
 app.get('/api/socios', (req, res) => {
@@ -483,11 +564,20 @@ app.post('/api/socios', (req, res) => {
     });
 
     const resData = transaction();
+
+    const auditoriaId = registrarAuditoria(
+      'CREAR_SOCIO',
+      `Nuevo socio registrado: ${nombre.trim()} ${apellido.trim()} (${resData.numero_socio} - DNI: ${dni.trim()})`,
+      null,
+      { socioId: resData.socioId, numero_socio: resData.numero_socio }
+    );
+
     res.status(201).json({
       id: resData.socioId,
       numero_socio: resData.numero_socio,
       montoTotal: resData.montoTotal,
-      message: '¡Inscripción completada exitosamente! Ya eres socio del Club Tercer Tiempo.'
+      message: '¡Inscripción completada exitosamente! Ya eres socio del Club Tercer Tiempo.',
+      auditoriaId
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -619,6 +709,45 @@ app.put('/api/socios/:id/estado', (req, res) => {
     }
     db.prepare('UPDATE socios SET estado = ? WHERE id = ?').run(estado, req.params.id);
     res.json({ message: 'Estado actualizado correctamente' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Eliminar socio definitivamente (con auditoría y capacidad de deshacer)
+app.delete('/api/socios/:id', (req, res) => {
+  try {
+    const socioId = req.params.id;
+    const socio = db.prepare('SELECT * FROM socios WHERE id = ?').get(socioId);
+    if (!socio) return res.status(404).json({ error: 'Socio no encontrado' });
+
+    // Respaldar datos completos para permitir Deshacer si fue un error
+    const disciplinas = db.prepare('SELECT disciplina_id FROM socio_disciplinas WHERE socio_id = ?').all(socioId).map(d => d.disciplina_id);
+    const cuotas = db.prepare('SELECT * FROM cuotas WHERE socio_id = ?').all(socioId);
+    const pagos = db.prepare('SELECT * FROM pagos WHERE socio_id = ?').all(socioId);
+    const comprobantes = db.prepare('SELECT * FROM comprobantes_transferencia WHERE socio_id = ?').all(socioId);
+
+    const transaction = db.transaction(() => {
+      db.prepare('DELETE FROM comprobantes_transferencia WHERE socio_id = ?').run(socioId);
+      db.prepare('DELETE FROM pagos WHERE socio_id = ?').run(socioId);
+      db.prepare('DELETE FROM cuotas WHERE socio_id = ?').run(socioId);
+      db.prepare('DELETE FROM socio_disciplinas WHERE socio_id = ?').run(socioId);
+      db.prepare('DELETE FROM socios WHERE id = ?').run(socioId);
+    });
+
+    transaction();
+
+    const auditoriaId = registrarAuditoria(
+      'ELIMINAR_SOCIO',
+      `Socio eliminado: ${socio.nombre} ${socio.apellido} (${socio.numero_socio} - DNI: ${socio.dni})`,
+      { socio, disciplinas, cuotas, pagos, comprobantes },
+      null
+    );
+
+    res.json({
+      message: `Socio ${socio.nombre} ${socio.apellido} (${socio.numero_socio}) eliminado correctamente.`,
+      auditoriaId
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -869,11 +998,19 @@ app.post('/api/pagos', (req, res) => {
     pagoCompleto.total_cobrado_cuota = nuevoTotalCobrado;
     pagoCompleto.es_parcial = saldoRestante > 0;
 
+    const auditoriaId = registrarAuditoria(
+      'PAGO',
+      `Cobro de cuota ${cuota.periodo} a ${pagoCompleto.nombre} ${pagoCompleto.apellido}: $${montoFinal.toLocaleString('es-AR')} (${pagoCompleto.nro_comprobante})`,
+      { cuota_id, estado_anterior: cuota.estado, pagos_previos: pagosPrevios },
+      { pagoId, montoFinal, nroComprobante }
+    );
+
     res.status(201).json({
       message: saldoRestante > 0
         ? `Pago registrado correctamente. Saldo restante: $${saldoRestante.toLocaleString('es-AR')}`
         : 'Cuota cancelada en su totalidad.',
-      pago: pagoCompleto
+      pago: pagoCompleto,
+      auditoriaId
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -935,11 +1072,19 @@ app.post('/api/socios/:id/cancelar-deuda', (req, res) => {
 
     transaction();
 
+    const auditoriaId = registrarAuditoria(
+      'CANCELAR_DEUDA',
+      `Cancelación total de deuda a ${socio.nombre} ${socio.apellido}: $${totalPagadoGeneral.toLocaleString('es-AR')} (${cuotasAdeudadas.length} cuotas)`,
+      { socioId, cuotasAdeudadas: cuotasAdeudadas.map(c => ({ id: c.id, estado: c.estado })) },
+      { pagosGenerados, totalPagadoGeneral }
+    );
+
     res.json({
       message: `Deuda total de $${totalPagadoGeneral.toLocaleString('es-AR')} cancelada exitosamente (${cuotasAdeudadas.length} cuotas).`,
       totalPagado: totalPagadoGeneral,
       cuotasCanceladas: cuotasAdeudadas.length,
-      socio: `${socio.nombre} ${socio.apellido}`
+      socio: `${socio.nombre} ${socio.apellido}`,
+      auditoriaId
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1179,9 +1324,17 @@ app.post('/api/tesoreria/comprobantes/:id/aprobar', (req, res) => {
 
     const nroRecibo = transaction();
 
+    const auditoriaId = registrarAuditoria(
+      'COMPROBANTE_APROBADO',
+      `Aprobación comprobante #${compId} (Transf. $${comp.monto_declarado.toLocaleString('es-AR')}) - Recibo ${nroRecibo}`,
+      { compId, cuota_id: comp.cuota_id, estado_cuota_anterior: cuota.estado },
+      { nroComprobante: nroRecibo, monto: comp.monto_declarado }
+    );
+
     res.json({
       message: 'Comprobante aprobado exitosamente. Se ha cancelado la cuota y acreditado el pago en caja.',
-      nroRecibo
+      nroRecibo,
+      auditoriaId
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -1206,7 +1359,218 @@ app.post('/api/tesoreria/comprobantes/:id/rechazar', (req, res) => {
       WHERE id = ?
     `).run(motivo_rechazo, fechaAhora, compId);
 
-    res.json({ message: 'Comprobante rechazado. El socio podrá volver a subir el comprobante correcto.' });
+    const auditoriaId = registrarAuditoria(
+      'COMPROBANTE_RECHAZADO',
+      `Rechazo comprobante #${compId}: "${motivo_rechazo}"`,
+      { compId },
+      { motivo_rechazo }
+    );
+
+    res.json({
+      message: 'Comprobante rechazado. El socio podrá volver a subir el comprobante correcto.',
+      auditoriaId
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -------------------------------------------------------------
+// COPIA DE SEGURIDAD (BACKUP) DE LA BASE DE DATOS
+// -------------------------------------------------------------
+app.get('/api/admin/backup', (req, res) => {
+  try {
+    const fs = require('fs');
+    const fecha = new Date().toISOString().split('T')[0];
+    const backupFileName = `club-tercer-tiempo-backup-${fecha}.db`;
+    const tempBackupPath = path.join(__dirname, 'temp-download-backup.db');
+
+    db.pragma('wal_checkpoint(TRUNCATE)');
+
+    db.backup(tempBackupPath).then(() => {
+      res.download(tempBackupPath, backupFileName, (err) => {
+        if (fs.existsSync(tempBackupPath)) {
+          try { fs.unlinkSync(tempBackupPath); } catch (e) {}
+        }
+      });
+    }).catch(err => {
+      res.status(500).json({ error: 'Error al generar backup: ' + err.message });
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -------------------------------------------------------------
+// HISTORIAL DE AUDITORÍA Y DESHACER ACCIONES
+// -------------------------------------------------------------
+app.get('/api/acciones/ultimas', (req, res) => {
+  try {
+    const acciones = db.prepare(`
+      SELECT id, tipo, descripcion, fecha, deshecho
+      FROM auditoria_acciones
+      ORDER BY id DESC
+      LIMIT 20
+    `).all();
+    res.json(acciones);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/acciones/:id/deshacer', (req, res) => {
+  try {
+    const accionId = req.params.id;
+    const accion = db.prepare('SELECT * FROM auditoria_acciones WHERE id = ?').get(accionId);
+    if (!accion) return res.status(404).json({ error: 'Acción no encontrada.' });
+    if (accion.deshecho === 1) return res.status(400).json({ error: 'Esta acción ya fue deshecha anteriormente.' });
+
+    const anterior = accion.datos_anteriores ? JSON.parse(accion.datos_anteriores) : null;
+    const nuevo = accion.datos_nuevos ? JSON.parse(accion.datos_nuevos) : null;
+
+    const transaction = db.transaction(() => {
+      switch (accion.tipo) {
+        case 'PAGO': {
+          if (nuevo && nuevo.pagoId) {
+            db.prepare('DELETE FROM pagos WHERE id = ?').run(nuevo.pagoId);
+          }
+          if (anterior && anterior.cuota_id) {
+            const cuotaId = anterior.cuota_id;
+            const cuota = db.prepare('SELECT * FROM cuotas WHERE id = ?').get(cuotaId);
+            if (cuota) {
+              const pagosRestantes = db.prepare('SELECT COALESCE(SUM(monto_pagado), 0) as total FROM pagos WHERE cuota_id = ?').get(cuotaId).total;
+              let restEstado = 'Pendiente';
+              if (pagosRestantes >= cuota.monto_total) restEstado = 'Pagada';
+              else if (pagosRestantes > 0) restEstado = 'Parcial';
+              else restEstado = anterior.estado_anterior || 'Pendiente';
+              db.prepare('UPDATE cuotas SET estado = ? WHERE id = ?').run(restEstado, cuotaId);
+            }
+          }
+          break;
+        }
+
+        case 'COMPROBANTE_APROBADO': {
+          if (nuevo && nuevo.nroComprobante) {
+            db.prepare('DELETE FROM pagos WHERE nro_comprobante = ?').run(nuevo.nroComprobante);
+          }
+          if (anterior && anterior.cuota_id) {
+            const estadoPrevio = anterior.estado_cuota_anterior || 'Pendiente';
+            db.prepare('UPDATE cuotas SET estado = ? WHERE id = ?').run(estadoPrevio, anterior.cuota_id);
+          }
+          if (anterior && anterior.compId) {
+            db.prepare("UPDATE comprobantes_transferencia SET estado = 'Pendiente', revisado_por = NULL, fecha_revision = NULL WHERE id = ?").run(anterior.compId);
+          }
+          break;
+        }
+
+        case 'COMPROBANTE_RECHAZADO': {
+          if (anterior && anterior.compId) {
+            db.prepare("UPDATE comprobantes_transferencia SET estado = 'Pendiente', motivo_rechazo = NULL, revisado_por = NULL, fecha_revision = NULL WHERE id = ?").run(anterior.compId);
+          }
+          break;
+        }
+
+        case 'CANCELAR_DEUDA': {
+          if (nuevo && Array.isArray(nuevo.pagosGenerados)) {
+            for (const p of nuevo.pagosGenerados) {
+              db.prepare('DELETE FROM pagos WHERE nro_comprobante = ?').run(p.nro_comprobante);
+            }
+          }
+          if (anterior && Array.isArray(anterior.cuotasAdeudadas)) {
+            for (const c of anterior.cuotasAdeudadas) {
+              db.prepare('UPDATE cuotas SET estado = ? WHERE id = ?').run(c.estado || 'Pendiente', c.id);
+            }
+          }
+          break;
+        }
+
+        case 'CREAR_SOCIO': {
+          if (nuevo && nuevo.socioId) {
+            db.prepare('DELETE FROM comprobantes_transferencia WHERE socio_id = ?').run(nuevo.socioId);
+            db.prepare('DELETE FROM pagos WHERE socio_id = ?').run(nuevo.socioId);
+            db.prepare('DELETE FROM cuotas WHERE socio_id = ?').run(nuevo.socioId);
+            db.prepare('DELETE FROM socio_disciplinas WHERE socio_id = ?').run(nuevo.socioId);
+            db.prepare('DELETE FROM socios WHERE id = ?').run(nuevo.socioId);
+          }
+          break;
+        }
+
+        case 'ELIMINAR_SOCIO': {
+          if (anterior && anterior.socio) {
+            const s = anterior.socio;
+            // Restaurar socio respetando campos completos
+            db.prepare(`
+              INSERT INTO socios (
+                id, numero_socio, nombre, apellido, dni, email, telefono, categoria_id, fecha_alta, estado,
+                grupo_familiar_id, fecha_nacimiento, edad, direccion, ocupacion, estado_civil,
+                grupo_sanguineo, posee_obra_social, nombre_obra_social, alergias_condiciones,
+                contacto_emergencia_nombre, contacto_emergencia_telefono, tutor_nombre, socio_proponente
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `).run(
+              s.id, s.numero_socio, s.nombre, s.apellido, s.dni, s.email, s.telefono, s.categoria_id, s.fecha_alta, s.estado,
+              s.grupo_familiar_id, s.fecha_nacimiento, s.edad, s.direccion, s.ocupacion, s.estado_civil,
+              s.grupo_sanguineo, s.posee_obra_social, s.nombre_obra_social, s.alergias_condiciones,
+              s.contacto_emergencia_nombre, s.contacto_emergencia_telefono, s.tutor_nombre, s.socio_proponente
+            );
+
+            // Restaurar disciplinas
+            if (Array.isArray(anterior.disciplinas)) {
+              const insertDisc = db.prepare('INSERT OR IGNORE INTO socio_disciplinas (socio_id, disciplina_id) VALUES (?, ?)');
+              for (const dId of anterior.disciplinas) {
+                insertDisc.run(s.id, dId);
+              }
+            }
+
+            // Restaurar cuotas
+            if (Array.isArray(anterior.cuotas)) {
+              const insertCuota = db.prepare(`
+                INSERT INTO cuotas (id, socio_id, periodo, mes, anio, concepto, monto_original, descuento, recargo, monto_total, fecha_vencimiento, estado, fecha_creacion)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `);
+              for (const c of anterior.cuotas) {
+                insertCuota.run(c.id, c.socio_id, c.periodo, c.mes, c.anio, c.concepto, c.monto_original, c.descuento, c.recargo, c.monto_total, c.fecha_vencimiento, c.estado, c.fecha_creacion);
+              }
+            }
+
+            // Restaurar pagos
+            if (Array.isArray(anterior.pagos)) {
+              const insertPago = db.prepare(`
+                INSERT INTO pagos (id, cuota_id, socio_id, monto_pagado, medio_pago, nro_comprobante, fecha_pago, observaciones, cajero)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `);
+              for (const p of anterior.pagos) {
+                insertPago.run(p.id, p.cuota_id, p.socio_id, p.monto_pagado, p.medio_pago, p.nro_comprobante, p.fecha_pago, p.observaciones, p.cajero);
+              }
+            }
+
+            // Restaurar comprobantes
+            if (Array.isArray(anterior.comprobantes)) {
+              const insertComp = db.prepare(`
+                INSERT INTO comprobantes_transferencia (id, socio_id, cuota_id, banco_origen, nro_transaccion, monto_declarado, archivo_url, fecha_subida, estado, motivo_rechazo, revisado_por, fecha_revision)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+              `);
+              for (const ct of anterior.comprobantes) {
+                insertComp.run(ct.id, ct.socio_id, ct.cuota_id, ct.banco_origen, ct.nro_transaccion, ct.monto_declarado, ct.archivo_url, ct.fecha_subida, ct.estado, ct.motivo_rechazo, ct.revisado_por, ct.fecha_revision);
+              }
+            }
+          }
+          break;
+        }
+
+        default:
+          throw new Error('Tipo de acción no soportada para revertir.');
+      }
+
+      // Marcar la acción como deshecha
+      db.prepare('UPDATE auditoria_acciones SET deshecho = 1 WHERE id = ?').run(accionId);
+    });
+
+    transaction();
+
+    res.json({
+      message: `Acción deshecha exitosamente: "${accion.descripcion}".`,
+      accionId
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

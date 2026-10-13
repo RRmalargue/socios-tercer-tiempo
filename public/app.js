@@ -35,9 +35,79 @@ function mostrarReciboPorId(id) {
 }
 
 // ==========================================
+// SEGURIDAD: CONTROL DE ACCESO PANEL SECRETARÍA
+// ==========================================
+const CLAVE_ADMIN_DEFAULT = '1234';
+
+function getClaveAdmin() {
+  return localStorage.getItem('claveAdminClub') || CLAVE_ADMIN_DEFAULT;
+}
+
+function verificarAutenticacionAdmin() {
+  const aut = sessionStorage.getItem('adminAutenticado');
+  const pantalla = document.getElementById('pantallaBloqueoAdmin');
+  if (aut === 'true') {
+    if (pantalla) pantalla.classList.add('hidden');
+    return true;
+  } else {
+    if (pantalla) pantalla.classList.remove('hidden');
+    const input = document.getElementById('inputClaveAdmin');
+    if (input) setTimeout(() => input.focus(), 150);
+    return false;
+  }
+}
+
+function handleLoginAdmin(e) {
+  e.preventDefault();
+  const input = document.getElementById('inputClaveAdmin');
+  const errEl = document.getElementById('errorClaveAdmin');
+  const clave = input ? input.value.trim() : '';
+
+  if (clave === getClaveAdmin()) {
+    sessionStorage.setItem('adminAutenticado', 'true');
+    if (errEl) errEl.classList.add('hidden');
+    const pantalla = document.getElementById('pantallaBloqueoAdmin');
+    if (pantalla) pantalla.classList.add('hidden');
+    loadMetadata().then(() => loadDashboard());
+  } else {
+    if (errEl) {
+      errEl.classList.remove('hidden');
+      errEl.textContent = '❌ Clave incorrecta. Intentá nuevamente.';
+    }
+    if (input) {
+      input.value = '';
+      input.focus();
+    }
+  }
+}
+
+function cerrarSesionAdmin() {
+  if (confirm('¿Confirmás que querés cerrar la sesión de secretaría?')) {
+    sessionStorage.removeItem('adminAutenticado');
+    location.reload();
+  }
+}
+
+function cambiarClaveAdmin() {
+  const actual = prompt('Ingresá la clave actual de secretaría:');
+  if (actual !== getClaveAdmin()) {
+    alert('❌ Clave actual incorrecta.');
+    return;
+  }
+  const nueva = prompt('Ingresá la NUEVA clave de secretaría (mínimo 4 caracteres):');
+  if (!nueva || nueva.trim().length < 4) {
+    alert('❌ La nueva clave debe tener al menos 4 caracteres.');
+    return;
+  }
+  localStorage.setItem('claveAdminClub', nueva.trim());
+  alert('✅ Clave de secretaría cambiada exitosamente.');
+}
+
+// ==========================================
 // INICIALIZACIÓN
 // ==========================================
 document.addEventListener('DOMContentLoaded', async () => {
+  if (!verificarAutenticacionAdmin()) return;
   await loadMetadata();
   loadDashboard();
 });
@@ -522,15 +592,73 @@ window.filtrarPorPrefijo = function(prefix) {
   loadSocios();
 };
 
+async function cargarResumenCategoriaMes(periodo, categoria_id, search) {
+  try {
+    const params = new URLSearchParams();
+    if (periodo) params.append('periodo', periodo);
+    if (categoria_id) params.append('categoria_id', categoria_id);
+    if (search) params.append('search', search);
+
+    const res = await fetch(`${API_BASE}/socios/resumen-periodo?${params.toString()}`);
+    if (!res.ok) return;
+    const data = await res.json();
+
+    const selectPeriodo = document.getElementById('filtroSocioPeriodo');
+    const mesNombre = selectPeriodo && selectPeriodo.selectedOptions[0] ? selectPeriodo.selectedOptions[0].textContent : periodo;
+    const elMesNombre = document.getElementById('resumenMesNombre');
+    if (elMesNombre) elMesNombre.textContent = mesNombre;
+
+    const catSelect = document.getElementById('filtroSocioCategoria');
+    let tituloFiltro = 'Todas las categorías';
+    if (categoria_id && catSelect && catSelect.selectedOptions[0] && catSelect.value) {
+      tituloFiltro = catSelect.selectedOptions[0].textContent.split('(')[0].trim();
+    } else if (search) {
+      if (search === 'FUND') tituloFiltro = '🏛️ Socios Fundadores';
+      else if (search === 'FUT') tituloFiltro = '⚽ Fútbol +35';
+      else if (search === 'ATL') tituloFiltro = '🏃 Atletismo';
+      else if (search === 'HB') tituloFiltro = '🤾 Handball';
+      else if (search === 'V') tituloFiltro = '🏐 Voley';
+      else if (search === 'GEN') tituloFiltro = '👥 Socios Generales';
+      else tituloFiltro = `Búsqueda: "${search}"`;
+    }
+
+    const elTitulo = document.getElementById('resumenCategoriaTitulo');
+    if (elTitulo) elTitulo.textContent = `${tituloFiltro} (${data.totalSocios} socios)`;
+
+    const elCobrado = document.getElementById('resumenMontoCobrado');
+    if (elCobrado) elCobrado.textContent = formatCurrency(data.totalCobrado);
+
+    const elCantPagados = document.getElementById('resumenCantPagados');
+    if (elCantPagados) elCantPagados.textContent = `${data.cantPagadas} cuota(s) pagada(s)`;
+
+    const elAdeudado = document.getElementById('resumenMontoAdeudado');
+    if (elAdeudado) elAdeudado.textContent = formatCurrency(data.totalAdeudado);
+
+    const elCantAdeudados = document.getElementById('resumenCantAdeudados');
+    if (elCantAdeudados) elCantAdeudados.textContent = `${data.cantPendientes} cuota(s) impaga(s)`;
+
+    const elPorcentaje = document.getElementById('resumenPorcentaje');
+    if (elPorcentaje) elPorcentaje.textContent = `${data.porcentajeCobranza}%`;
+  } catch (err) {
+    console.error('Error cargando resumen categoría período:', err);
+  }
+}
+
 async function loadSocios() {
   const search = document.getElementById('filtroSocioSearch').value;
   const categoria_id = document.getElementById('filtroSocioCategoria').value;
   const estado = document.getElementById('filtroSocioEstado').value;
+  const selectPeriodo = document.getElementById('filtroSocioPeriodo');
+  const periodo = selectPeriodo ? selectPeriodo.value : '2026-10';
 
   const params = new URLSearchParams();
   if (search) params.append('search', search);
   if (categoria_id) params.append('categoria_id', categoria_id);
   if (estado) params.append('estado', estado);
+  if (periodo) params.append('periodo', periodo);
+
+  // Actualizar resumen financiero dinámico de la categoría y mes seleccionado
+  cargarResumenCategoriaMes(periodo, categoria_id, search);
 
   try {
     const res = await fetch(`${API_BASE}/socios?${params.toString()}`);
@@ -587,6 +715,9 @@ async function loadSocios() {
           </button>
           <button onclick="verCarnet(${s.id})" title="Ver Carnet y QR de Acceso" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
             🪪 Carnet QR
+          </button>
+          <button onclick="confirmarEliminarSocio(${s.id}, '${s.nombre} ${s.apellido}', '${s.numero_socio}', '${s.dni}')" title="Eliminar socio del club" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2 py-1.5 rounded-lg text-xs font-bold transition">
+            🗑️
           </button>
         </td>
       `;
@@ -825,6 +956,9 @@ async function handleConfirmarPago(e) {
 
     closeModal('modalCobrarCuota');
     mostrarRecibo(data.pago);
+    if (data.auditoriaId) {
+      mostrarToastDeshacer(`Cobro registrado (${data.pago.nro_comprobante})`, data.auditoriaId);
+    }
     if (state.currentTab === 'cuotas') loadCuotas();
     if (state.currentTab === 'socios') loadSocios();
     if (state.currentTab === 'dashboard') loadDashboard();
@@ -1096,6 +1230,9 @@ async function aprobarComprobante(id) {
     if (!res.ok) throw new Error(data.error || 'Error al aprobar comprobante');
 
     alert(`✅ ¡Pago acreditado exitosamente!\nSe emitió el comprobante oficial: ${data.nroRecibo}`);
+    if (data.auditoriaId) {
+      mostrarToastDeshacer(`Transferencia aprobada (${data.nroRecibo})`, data.auditoriaId);
+    }
     loadComprobantesTesoreria();
     loadDashboard();
   } catch (err) {
@@ -1129,6 +1266,9 @@ async function confirmarRechazoComprobante() {
 
     alert('Comprobante marcado como rechazado.');
     closeModal('modalRechazarComprobante');
+    if (data.auditoriaId) {
+      mostrarToastDeshacer('Comprobante de transferencia rechazado', data.auditoriaId);
+    }
     loadComprobantesTesoreria();
     loadDashboard();
   } catch (err) {
@@ -1782,6 +1922,9 @@ async function cancelarTodaLaDeudaEfectivo() {
     alert(`✅ ${data.message}\n¡El socio ha quedado totalmente al día!`);
     closeModal('modalCuentaSocio');
     closeModal('modalFichaSocio');
+    if (data.auditoriaId) {
+      mostrarToastDeshacer(`Cancelación de deuda a ${data.socio}`, data.auditoriaId);
+    }
     if (state.currentTab === 'socios') loadSocios();
     if (state.currentTab === 'cuotas') loadCuotas();
     if (state.currentTab === 'dashboard') loadDashboard();
@@ -1789,3 +1932,209 @@ async function cancelarTodaLaDeudaEfectivo() {
     alert(`❌ ${err.message}`);
   }
 }
+
+// ==========================================
+// 8. COPIAS DE SEGURIDAD (RESPALDAR)
+// ==========================================
+window.descargarBackup = function() {
+  const fecha = new Date().toISOString().split('T')[0];
+  const url = `${API_BASE}/admin/backup`;
+  
+  // Crear un enlace temporal para forzar la descarga en el navegador
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `club-tercer-tiempo-backup-${fecha}.db`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  mostrarToastDeshacer('Descarga de respaldo iniciada (.db)', null);
+};
+
+// ==========================================
+// 9. ELIMINACIÓN DE SOCIOS
+// ==========================================
+let socioAEliminarId = null;
+
+window.confirmarEliminarSocio = function(id, nombre, numero_socio, dni) {
+  socioAEliminarId = id;
+  const texto = document.getElementById('textoConfirmarEliminarSocio');
+  if (texto) {
+    texto.innerHTML = `¿Estás seguro de que deseas eliminar al socio <strong>${nombre}</strong>?<br><span class="font-mono text-slate-500">N° Socio: ${numero_socio} • DNI: ${dni}</span>`;
+  }
+  document.getElementById('modalConfirmarEliminarSocio').classList.remove('hidden');
+};
+
+window.confirmarEliminarSocioDesdeModal = function() {
+  const id = document.getElementById('editSocioId').value;
+  const nombre = `${document.getElementById('editSocioNombre').value} ${document.getElementById('editSocioApellido').value}`;
+  const numero = document.getElementById('editSocioNumero').value;
+  const dni = document.getElementById('editSocioDni').value;
+  closeModal('modalEditarSocio');
+  confirmarEliminarSocio(id, nombre, numero, dni);
+};
+
+window.ejecutarEliminarSocio = async function() {
+  if (!socioAEliminarId) return;
+
+  const btn = document.getElementById('btnConfirmarEliminarSocio');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Eliminando...';
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/socios/${socioAEliminarId}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al eliminar socio');
+
+    closeModal('modalConfirmarEliminarSocio');
+    loadSocios();
+    loadDashboard();
+    if (state.currentTab === 'cuotas') loadCuotas();
+
+    if (data.auditoriaId) {
+      mostrarToastDeshacer(data.message, data.auditoriaId);
+    } else {
+      alert(`✅ ${data.message}`);
+    }
+  } catch (err) {
+    alert(`❌ ${err.message}`);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '🗑️ Sí, Eliminar';
+    }
+    socioAEliminarId = null;
+  }
+};
+
+// ==========================================
+// 10. HISTORIAL DE AUDITORÍA Y DESHACER ACCIONES
+// ==========================================
+let ultimaAuditoriaId = null;
+let toastTimeout = null;
+
+window.mostrarToastDeshacer = function(texto, auditoriaId) {
+  ultimaAuditoriaId = auditoriaId;
+  const toast = document.getElementById('toastDeshacer');
+  const textoEl = document.getElementById('toastDeshacerTexto');
+  const btn = document.getElementById('btnToastDeshacer');
+  if (!toast || !textoEl) return;
+
+  textoEl.textContent = texto;
+  if (auditoriaId) {
+    if (btn) btn.classList.remove('hidden');
+  } else {
+    if (btn) btn.classList.add('hidden');
+  }
+
+  toast.classList.remove('hidden');
+
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    cerrarToastDeshacer();
+  }, 10000);
+};
+
+window.cerrarToastDeshacer = function() {
+  const toast = document.getElementById('toastDeshacer');
+  if (toast) toast.classList.add('hidden');
+  if (toastTimeout) clearTimeout(toastTimeout);
+};
+
+window.deshacerAccionToast = async function() {
+  if (!ultimaAuditoriaId) return;
+  const idParaDeshacer = ultimaAuditoriaId;
+  cerrarToastDeshacer();
+  await deshacerAccion(idParaDeshacer);
+};
+
+window.abrirModalDeshacer = async function() {
+  const modal = document.getElementById('modalDeshacerAcciones');
+  const contenedor = document.getElementById('listaAccionesDeshacer');
+  if (!modal || !contenedor) return;
+
+  contenedor.innerHTML = '<div class="text-center py-6 text-slate-400 text-xs">Cargando historial de acciones...</div>';
+  modal.classList.remove('hidden');
+
+  try {
+    const res = await fetch(`${API_BASE}/acciones/ultimas`);
+    const acciones = await res.json();
+
+    if (acciones.length === 0) {
+      contenedor.innerHTML = '<div class="text-center py-8 text-slate-400 text-xs">No hay acciones registradas en el historial aún.</div>';
+      return;
+    }
+
+    contenedor.innerHTML = '';
+    acciones.forEach(acc => {
+      const item = document.createElement('div');
+      item.className = `p-3 rounded-2xl border transition flex items-center justify-between gap-3 ${
+        acc.deshecho 
+          ? 'bg-slate-50 border-slate-200 opacity-60' 
+          : 'bg-white border-slate-200 hover:border-amber-300 shadow-sm'
+      }`;
+
+      let icono = '⚡';
+      if (acc.tipo === 'PAGO') icono = '💵';
+      else if (acc.tipo === 'COMPROBANTE_APROBADO') icono = '✅';
+      else if (acc.tipo === 'COMPROBANTE_RECHAZADO') icono = '❌';
+      else if (acc.tipo === 'CANCELAR_DEUDA') icono = '⚡';
+      else if (acc.tipo === 'ELIMINAR_SOCIO') icono = '🗑️';
+      else if (acc.tipo === 'CREAR_SOCIO') icono = '👤';
+
+      item.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-xl ${acc.deshecho ? 'bg-slate-200 text-slate-500' : 'bg-amber-100 text-amber-700'} font-bold flex items-center justify-center text-sm">
+            ${icono}
+          </div>
+          <div>
+            <p class="text-xs font-bold text-slate-900 leading-tight">${acc.descripcion}</p>
+            <p class="text-[10px] text-slate-400 font-mono mt-0.5">${acc.fecha}</p>
+          </div>
+        </div>
+        <div>
+          ${acc.deshecho 
+            ? `<span class="text-[11px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">Deshecho</span>`
+            : `<button onclick="deshacerAccion(${acc.id})" class="bg-amber-500 hover:bg-amber-600 text-zinc-950 font-black px-3 py-1.5 rounded-xl text-xs flex items-center gap-1 shadow transition cursor-pointer">
+                 <span>↶</span> Deshacer
+               </button>`
+          }
+        </div>
+      `;
+      contenedor.appendChild(item);
+    });
+  } catch (err) {
+    contenedor.innerHTML = `<div class="text-center py-6 text-rose-500 text-xs">Error al cargar historial: ${err.message}</div>`;
+  }
+};
+
+window.deshacerAccion = async function(id) {
+  if (!confirm('¿Confirmás que deseás DESHACER esta acción y revertir los cambios?')) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/acciones/${id}/deshacer`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al deshacer acción');
+
+    alert(`✅ ${data.message}`);
+
+    loadSocios();
+    loadDashboard();
+    if (state.currentTab === 'cuotas') loadCuotas();
+    if (state.currentTab === 'pagos') loadPagos();
+    if (state.currentTab === 'tesoreria') loadComprobantesTesoreria();
+
+    const modal = document.getElementById('modalDeshacerAcciones');
+    if (modal && !modal.classList.contains('hidden')) {
+      abrirModalDeshacer();
+    }
+  } catch (err) {
+    alert(`❌ ${err.message}`);
+  }
+};

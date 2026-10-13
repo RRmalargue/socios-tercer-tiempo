@@ -90,12 +90,23 @@ function initDatabase() {
       fecha_revision TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS auditoria_acciones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      tipo TEXT NOT NULL,
+      descripcion TEXT NOT NULL,
+      datos_anteriores TEXT,
+      datos_nuevos TEXT,
+      fecha TEXT NOT NULL,
+      deshecho INTEGER DEFAULT 0
+    );
+
     CREATE INDEX IF NOT EXISTS idx_socios_dni ON socios(dni);
     CREATE INDEX IF NOT EXISTS idx_socios_estado ON socios(estado);
     CREATE INDEX IF NOT EXISTS idx_cuotas_periodo ON cuotas(periodo);
     CREATE INDEX IF NOT EXISTS idx_cuotas_estado ON cuotas(estado);
     CREATE INDEX IF NOT EXISTS idx_pagos_fecha ON pagos(fecha_pago);
     CREATE INDEX IF NOT EXISTS idx_comprobantes_estado ON comprobantes_transferencia(estado);
+    CREATE INDEX IF NOT EXISTS idx_auditoria_fecha ON auditoria_acciones(fecha);
   `);
 
   seedInitialData();
