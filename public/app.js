@@ -257,11 +257,30 @@ async function loadDashboard() {
             </div>
           </div>
           <div class="flex justify-between items-center text-[11px] text-slate-500 mt-3 pt-2.5 border-t border-slate-100">
-            <span><strong>${g.pagadas}</strong> al día &bull; <strong>${g.pendientes}</strong> deben</span>
+            <span><strong>${g.socios} socios</strong> &bull; <strong>${g.pagadas}</strong> al día</span>
             <span class="text-emerald-700 font-bold group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-0.5">Ver padrón ➔</span>
           </div>
         `;
         gruposGrid.appendChild(card);
+      });
+
+      // Actualizar botones de filtro rápido con los conteos reales
+      const btnTodos = document.getElementById('btnFiltroTodos');
+      if (btnTodos) btnTodos.textContent = `Todos (${data.totalSocios})`;
+      const mapaNombres = {
+        FUND: '🏛️ Fundadores',
+        FUT: '⚽ Fútbol +35',
+        ATL: '🏃 Atletismo',
+        HB: '🤾 Handball',
+        VOL: '🏐 Voley',
+        GEN: '👥 Generales'
+      };
+      data.porGrupos.forEach(g => {
+        const btn = document.getElementById(`btnFiltro${g.key}`);
+        if (btn) {
+          const label = mapaNombres[g.key] || `${g.icono} ${g.nombre}`;
+          btn.textContent = `${label} (${g.socios})`;
+        }
       });
     }
 
@@ -1329,11 +1348,63 @@ function verComprobanteGrande(imgUrl, titulo) {
 }
 
 // ==========================================
-// 7. CONFIGURACIÓN: CUOTAS Y DISCIPLINAS
+// 7. CONFIGURACIÓN: CUOTAS, DISCIPLINAS Y BANCO
 // ==========================================
 async function loadConfigTab() {
-  await Promise.all([loadConfigCategorias(), loadConfigDisciplinas()]);
+  await Promise.all([loadConfigCategorias(), loadConfigDisciplinas(), loadConfigBancaria()]);
 }
+
+async function loadConfigBancaria() {
+  try {
+    const res = await fetch(`${API_BASE}/config/bancarios`);
+    const data = await res.json();
+    if (data) {
+      const elAlias = document.getElementById('configBankAlias');
+      if (elAlias) elAlias.value = data.alias || '';
+      const elCbu = document.getElementById('configBankCbu');
+      if (elCbu) elCbu.value = data.cbu || '';
+      const elBanco = document.getElementById('configBankBanco');
+      if (elBanco) elBanco.value = data.banco || '';
+      const elTitular = document.getElementById('configBankTitular');
+      if (elTitular) elTitular.value = data.titular || '';
+      const elCuit = document.getElementById('configBankCuit');
+      if (elCuit) elCuit.value = data.cuit || '';
+      const elTipo = document.getElementById('configBankTipoCuenta');
+      if (elTipo) elTipo.value = data.tipo_cuenta || '';
+    }
+  } catch (err) {
+    console.error('Error cargando configuración bancaria:', err);
+  }
+}
+
+window.guardarDatosBancarios = async function() {
+  const alias = document.getElementById('configBankAlias').value.trim();
+  const cbu = document.getElementById('configBankCbu').value.trim();
+  const banco = document.getElementById('configBankBanco').value.trim();
+  const titular = document.getElementById('configBankTitular').value.trim();
+  const cuit = document.getElementById('configBankCuit').value.trim();
+  const tipo_cuenta = document.getElementById('configBankTipoCuenta').value.trim();
+
+  if (!alias || !cbu) {
+    alert('⚠️ Por favor completá al menos el Alias y el CBU.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/config/bancarios`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alias, cbu, banco, titular, cuit, tipo_cuenta })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar datos bancarios');
+
+    alert('✅ Datos bancarios guardados exitosamente.\nSe verán reflejados de inmediato en el Portal de Socios.');
+    loadConfigBancaria();
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+};
 
 async function loadConfigCategorias() {
   try {

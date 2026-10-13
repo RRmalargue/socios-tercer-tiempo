@@ -82,11 +82,11 @@ app.get('/api/dashboard', (req, res) => {
     // Desglose exacto por grupos deportivos del club
     const gruposDef = [
       { key: 'FUND', nombre: 'Socios Fundadores', icono: '🏛️', match: "s.numero_socio LIKE 'FUND%'" },
-      { key: 'FUT', nombre: 'Fútbol +35', icono: '⚽', match: "s.numero_socio LIKE 'FUT%'" },
-      { key: 'VOL', nombre: 'Voley (Todas las cat)', icono: '🏐', match: "(s.numero_socio LIKE 'VOL%' OR s.numero_socio LIKE 'VFA%' OR s.numero_socio LIKE 'VMA%')" },
-      { key: 'GEN', nombre: 'Socios Generales', icono: '👥', match: "s.numero_socio LIKE 'GEN%'" },
-      { key: 'HB', nombre: 'Handball (Fem y Masc)', icono: '🤾', match: "(s.numero_socio LIKE 'HBF%' OR s.numero_socio LIKE 'HBM%')" },
-      { key: 'ATL', nombre: 'Atletismo', icono: '🏃', match: "s.numero_socio LIKE 'ATL%'" }
+      { key: 'FUT', nombre: 'Fútbol +35', icono: '⚽', match: "((s.numero_socio LIKE 'FUT%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Fútbol%'))" },
+      { key: 'VOL', nombre: 'Voley (Todas las cat)', icono: '🏐', match: "((s.numero_socio LIKE 'VOL%' OR s.numero_socio LIKE 'VFA%' OR s.numero_socio LIKE 'VMA%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Voley%'))" },
+      { key: 'GEN', nombre: 'Socios Generales', icono: '👥', match: "((s.numero_socio LIKE 'GEN%') OR (s.numero_socio NOT LIKE 'FUND%' AND s.id NOT IN (SELECT sd.socio_id FROM socio_disciplinas sd)))" },
+      { key: 'HB', nombre: 'Handball (Fem y Masc)', icono: '🤾', match: "((s.numero_socio LIKE 'HBF%' OR s.numero_socio LIKE 'HBM%' OR s.numero_socio LIKE 'HB%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Handball%'))" },
+      { key: 'ATL', nombre: 'Atletismo', icono: '🏃', match: "((s.numero_socio LIKE 'ATL%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Atletismo%'))" }
     ];
 
     const porGrupos = gruposDef.map(g => {
@@ -396,6 +396,71 @@ app.delete('/api/disciplinas/:id', (req, res) => {
 });
 
 // -------------------------------------------------------------
+// CONFIGURACIÓN BANCARIA DEL CLUB (Para Cobros y Portal Socio)
+// -------------------------------------------------------------
+function getDatosBancarios() {
+  try {
+    const rows = db.prepare('SELECT clave, valor FROM configuracion_club').all();
+    const config = {};
+    rows.forEach(r => { config[r.clave] = r.valor; });
+    return {
+      banco: config.banco || 'Banco Galicia',
+      titular: config.titular || 'Asociación Club Tercer Tiempo Malargüe',
+      cuit: config.cuit || '30-71234567-9',
+      cbu: config.cbu || '0070123420000012345678',
+      alias: config.alias || 'ACTTM2026',
+      tipo_cuenta: config.tipo_cuenta || 'Cuenta Corriente Especial'
+    };
+  } catch (e) {
+    return {
+      banco: 'Banco Galicia',
+      titular: 'Asociación Club Tercer Tiempo Malargüe',
+      cuit: '30-71234567-9',
+      cbu: '0070123420000012345678',
+      alias: 'ACTTM2026',
+      tipo_cuenta: 'Cuenta Corriente Especial'
+    };
+  }
+}
+
+app.get('/api/config/bancarios', (req, res) => {
+  res.json(getDatosBancarios());
+});
+
+app.put('/api/config/bancarios', (req, res) => {
+  try {
+    const { banco, titular, cuit, cbu, alias, tipo_cuenta } = req.body;
+    if (!alias || !cbu) {
+      return res.status(400).json({ error: 'El Alias y el CBU son obligatorios.' });
+    }
+    const upsert = db.prepare(`
+      INSERT INTO configuracion_club (clave, valor) VALUES (?, ?)
+      ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor
+    `);
+    const transaction = db.transaction(() => {
+      if (banco !== undefined) upsert.run('banco', banco.trim());
+      if (titular !== undefined) upsert.run('titular', titular.trim());
+      if (cuit !== undefined) upsert.run('cuit', cuit.trim());
+      if (cbu !== undefined) upsert.run('cbu', cbu.trim());
+      if (alias !== undefined) upsert.run('alias', alias.trim().toUpperCase());
+      if (tipo_cuenta !== undefined) upsert.run('tipo_cuenta', tipo_cuenta.trim());
+    });
+    transaction();
+
+    registrarAuditoria(
+      'CONFIG_BANCARIA',
+      `Datos bancarios actualizados: Alias ${alias.trim().toUpperCase()}, CBU ${cbu.trim()}`,
+      null,
+      { banco, titular, cuit, cbu, alias, tipo_cuenta }
+    );
+
+    res.json({ message: 'Datos bancarios actualizados correctamente', datos: getDatosBancarios() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -------------------------------------------------------------
 // RESUMEN FINANCIERO POR CATEGORÍA Y PERÍODO
 // -------------------------------------------------------------
 app.get('/api/socios/resumen-periodo', (req, res) => {
@@ -414,15 +479,15 @@ app.get('/api/socios/resumen-periodo', (req, res) => {
       if (sUpper === 'FUND') {
         baseWhere += " AND s.numero_socio LIKE 'FUND%'";
       } else if (sUpper === 'FUT') {
-        baseWhere += " AND s.numero_socio LIKE 'FUT%'";
+        baseWhere += " AND ((s.numero_socio LIKE 'FUT%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Fútbol%'))";
       } else if (sUpper === 'ATL') {
-        baseWhere += " AND s.numero_socio LIKE 'ATL%'";
+        baseWhere += " AND ((s.numero_socio LIKE 'ATL%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Atletismo%'))";
       } else if (sUpper === 'HB') {
-        baseWhere += " AND (s.numero_socio LIKE 'HBF%' OR s.numero_socio LIKE 'HBM%')";
+        baseWhere += " AND ((s.numero_socio LIKE 'HBF%' OR s.numero_socio LIKE 'HBM%' OR s.numero_socio LIKE 'HB%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Handball%'))";
       } else if (sUpper === 'V' || sUpper === 'VOL' || sUpper === 'VOLEY') {
-        baseWhere += " AND (s.numero_socio LIKE 'VOL%' OR s.numero_socio LIKE 'VFA%' OR s.numero_socio LIKE 'VMA%')";
+        baseWhere += " AND ((s.numero_socio LIKE 'VOL%' OR s.numero_socio LIKE 'VFA%' OR s.numero_socio LIKE 'VMA%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Voley%'))";
       } else if (sUpper === 'GEN') {
-        baseWhere += " AND s.numero_socio LIKE 'GEN%'";
+        baseWhere += " AND ((s.numero_socio LIKE 'GEN%') OR (s.numero_socio NOT LIKE 'FUND%' AND s.id NOT IN (SELECT sd.socio_id FROM socio_disciplinas sd)))";
       } else {
         baseWhere += " AND (s.nombre LIKE ? OR s.apellido LIKE ? OR s.dni LIKE ? OR s.numero_socio LIKE ?)";
         const term = `%${search}%`;
@@ -504,15 +569,15 @@ app.get('/api/socios', (req, res) => {
       if (sUpper === 'FUND') {
         query += " AND s.numero_socio LIKE 'FUND%'";
       } else if (sUpper === 'FUT') {
-        query += " AND s.numero_socio LIKE 'FUT%'";
+        query += " AND ((s.numero_socio LIKE 'FUT%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Fútbol%'))";
       } else if (sUpper === 'ATL') {
-        query += " AND s.numero_socio LIKE 'ATL%'";
+        query += " AND ((s.numero_socio LIKE 'ATL%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Atletismo%'))";
       } else if (sUpper === 'HB') {
-        query += " AND (s.numero_socio LIKE 'HBF%' OR s.numero_socio LIKE 'HBM%')";
+        query += " AND ((s.numero_socio LIKE 'HBF%' OR s.numero_socio LIKE 'HBM%' OR s.numero_socio LIKE 'HB%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Handball%'))";
       } else if (sUpper === 'V' || sUpper === 'VOL' || sUpper === 'VOLEY') {
-        query += " AND (s.numero_socio LIKE 'VOL%' OR s.numero_socio LIKE 'VFA%' OR s.numero_socio LIKE 'VMA%')";
+        query += " AND ((s.numero_socio LIKE 'VOL%' OR s.numero_socio LIKE 'VFA%' OR s.numero_socio LIKE 'VMA%') OR s.id IN (SELECT sd.socio_id FROM socio_disciplinas sd JOIN disciplinas d ON sd.disciplina_id = d.id WHERE d.nombre LIKE '%Voley%'))";
       } else if (sUpper === 'GEN') {
-        query += " AND s.numero_socio LIKE 'GEN%'";
+        query += " AND ((s.numero_socio LIKE 'GEN%') OR (s.numero_socio NOT LIKE 'FUND%' AND s.id NOT IN (SELECT sd.socio_id FROM socio_disciplinas sd)))";
       } else {
         query += ` AND (s.nombre LIKE ? OR s.apellido LIKE ? OR s.dni LIKE ? OR s.numero_socio LIKE ?)`;
         const term = `%${search}%`;
@@ -602,10 +667,30 @@ app.post('/api/socios', (req, res) => {
       return res.status(400).json({ error: 'Ya existe un socio registrado con ese DNI.' });
     }
 
-    // Generar nuevo número de socio
-    const lastSocio = db.prepare('SELECT id FROM socios ORDER BY id DESC LIMIT 1').get();
-    const nextId = (lastSocio ? lastSocio.id : 0) + 1;
-    const numero_socio = `SOC-${1000 + nextId}`;
+    // Generar nuevo número de socio según disciplina o categoría
+    let prefix = 'GEN';
+    if (Array.isArray(disciplinas) && disciplinas.length > 0) {
+      const discPlaceholders = disciplinas.map(() => '?').join(',');
+      const discRows = db.prepare(`SELECT nombre FROM disciplinas WHERE id IN (${discPlaceholders})`).all(...disciplinas);
+      const nombresDisc = discRows.map(d => d.nombre.toLowerCase()).join(' ');
+      if (nombresDisc.includes('atletismo')) prefix = 'ATL';
+      else if (nombresDisc.includes('fútbol') || nombresDisc.includes('futbol')) prefix = 'FUT';
+      else if (nombresDisc.includes('handball')) prefix = 'HB';
+      else if (nombresDisc.includes('voley')) prefix = 'VOL';
+    }
+
+    // Buscar el último número con ese prefijo para incrementar correlativamente
+    const sociosConPrefijo = db.prepare(`SELECT numero_socio FROM socios WHERE numero_socio LIKE ?`).all(`${prefix}-%`);
+    let maxNum = 0;
+    sociosConPrefijo.forEach(s => {
+      const m = s.numero_socio.match(/\d+/);
+      if (m) {
+        const val = parseInt(m[0], 10);
+        if (val > maxNum) maxNum = val;
+      }
+    });
+    const nextNum = maxNum + 1;
+    const numero_socio = `${prefix}-${String(nextNum).padStart(3, '0')}`;
     const fecha_alta = new Date().toISOString().split('T')[0];
 
     const transaction = db.transaction(() => {
@@ -1299,14 +1384,7 @@ app.get('/api/socio/perfil', (req, res) => {
       alDia,
       cuotasAdeudadas: deuda.cuotas_adeudadas,
       totalDeuda: deuda.total_deuda,
-      datosBancarios: {
-        banco: 'Banco Galicia',
-        titular: 'Asociación Club Tercer Tiempo Malargüe',
-        cuit: '30-71234567-9',
-        cbu: '0070123420000012345678',
-        alias: 'ACTTM2026',
-        tipoCuenta: 'Cuenta Corriente Especial'
-      }
+      datosBancarios: getDatosBancarios()
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

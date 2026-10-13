@@ -126,7 +126,7 @@
               <button onclick="copiarTexto('bankCbu')" class="text-emerald-700 hover:text-emerald-900 font-bold text-[11px]">Copiar</button>
             </div>
           </div>
-          <p class="text-[10px] text-slate-400 text-center pt-1 border-t">Titular: Asociación Club Tercer Tiempo Malargüe • CUIT: 30-71234567-9</p>
+          <p id="bankTitularDetalle" class="text-[10px] text-slate-400 text-center pt-1 border-t">Titular: Asociación Club Tercer Tiempo Malargüe • CUIT: 30-71234567-9</p>
         </div>
       </div>
 
@@ -231,6 +231,27 @@
 
     const formatCurrency = (m) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(m || 0);
 
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('/api/config/bancarios')
+        .then(r => r.json())
+        .then(b => {
+          if (b && b.alias) aplicarDatosBancarios(b);
+        })
+        .catch(() => {});
+    });
+
+    function aplicarDatosBancarios(b) {
+      if (!b) return;
+      const elAlias = document.getElementById('bankAlias');
+      if (elAlias && b.alias) elAlias.textContent = b.alias;
+      const elCbu = document.getElementById('bankCbu');
+      if (elCbu && b.cbu) elCbu.textContent = b.cbu;
+      const elDetalle = document.getElementById('bankTitularDetalle');
+      if (elDetalle) {
+        elDetalle.textContent = `Titular: ${b.titular || 'Club Tercer Tiempo'} • CUIT: ${b.cuit || ''} • ${b.banco || ''} (${b.tipo_cuenta || 'Cta Cte'})`;
+      }
+    }
+
     function probarLogin(dni) {
       document.getElementById('loginInput').value = dni;
       document.getElementById('formLoginSocio').requestSubmit();
@@ -268,6 +289,10 @@
       document.getElementById('perfilNombre').textContent = `${s.nombre} ${s.apellido}`;
       const esFundador = s.numero_socio && s.numero_socio.startsWith('FUND-');
       document.getElementById('perfilCategoria').textContent = esFundador ? `Socio Fundador • ${s.categoria_nombre}` : s.categoria_nombre;
+
+      if (socioActual.datosBancarios) {
+        aplicarDatosBancarios(socioActual.datosBancarios);
+      }
 
       const badge = document.getElementById('perfilEstadoBadge');
       if (socioActual.alDia) {

@@ -100,6 +100,11 @@ function initDatabase() {
       deshecho INTEGER DEFAULT 0
     );
 
+    CREATE TABLE IF NOT EXISTS configuracion_club (
+      clave TEXT PRIMARY KEY,
+      valor TEXT NOT NULL
+    );
+
     CREATE INDEX IF NOT EXISTS idx_socios_dni ON socios(dni);
     CREATE INDEX IF NOT EXISTS idx_socios_estado ON socios(estado);
     CREATE INDEX IF NOT EXISTS idx_cuotas_periodo ON cuotas(periodo);
@@ -136,6 +141,15 @@ function seedInitialData() {
     insertDisciplina.run('Voley Masculino', 10000, 'Prof. Voley Masculino', 'Mar, Jue y Sáb 20:30 a 22:30');
     insertDisciplina.run('Institucional', 10000, 'Secretaría Club', 'Lun a Sáb');
   }
+
+  // Asegurar configuración bancaria inicial para transferencias y portal de socios
+  const insertConfig = db.prepare('INSERT OR IGNORE INTO configuracion_club (clave, valor) VALUES (?, ?)');
+  insertConfig.run('banco', 'Banco Galicia');
+  insertConfig.run('titular', 'Asociación Club Tercer Tiempo Malargüe');
+  insertConfig.run('cuit', '30-71234567-9');
+  insertConfig.run('cbu', '0070123420000012345678');
+  insertConfig.run('alias', 'ACTTM2026');
+  insertConfig.run('tipo_cuenta', 'Cuenta Corriente Especial');
 
   // Verificar si ya tenemos el padrón real cargado (174 socios)
   const countSocios = db.prepare('SELECT COUNT(*) as count FROM socios').get().count;
