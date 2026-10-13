@@ -1576,16 +1576,20 @@ async function abrirCuentaSocio(socioId) {
     document.getElementById('cuentaSocioNombre').textContent = `${s.nombre} ${s.apellido}`;
     document.getElementById('cuentaSocioDni').textContent = `DNI: ${s.dni || '-'} • Tel: ${s.telefono || 'Sin teléfono'}`;
 
-    const cuotasAdeudadas = (s.cuotas || []).filter(c => (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total) > 0);
-    const totalDeuda = cuotasAdeudadas.reduce((acc, c) => acc + (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total), 0);
+    const mesActual = '2026-10';
+    const cuotasExigibles = (s.cuotas || []).filter(c => c.periodo <= mesActual && (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total) > 0);
+    const cuotasFuturas = (s.cuotas || []).filter(c => c.periodo > mesActual && (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total) > 0);
+    const totalDeuda = cuotasExigibles.reduce((acc, c) => acc + (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total), 0);
 
     document.getElementById('cuentaSocioTotalDeuda').textContent = formatCurrency(totalDeuda);
-    document.getElementById('cuentaSocioCantCuotas').textContent = `${cuotasAdeudadas.length} cuota(s) pendiente(s)`;
+    document.getElementById('cuentaSocioCantCuotas').textContent = cuotasExigibles.length > 0 
+      ? `${cuotasExigibles.length} cuota(s) adeudada(s) hasta Octubre` 
+      : 'Al Día con el mes actual (Octubre)';
 
     const btnCancelarTodo = document.getElementById('btnCuentaCancelarTodo');
     if (totalDeuda > 0) {
       btnCancelarTodo.classList.remove('hidden');
-      btnCancelarTodo.innerHTML = `<span>⚡</span> Cancelar Todo en Efectivo (${formatCurrency(totalDeuda)})`;
+      btnCancelarTodo.innerHTML = `<span>⚡</span> Cancelar Deuda Exigible en Efectivo (${formatCurrency(totalDeuda)})`;
     } else {
       btnCancelarTodo.classList.add('hidden');
     }
@@ -1593,20 +1597,20 @@ async function abrirCuentaSocio(socioId) {
     const containerCuotas = document.getElementById('cuentaSocioListaCuotas');
     containerCuotas.innerHTML = '';
 
-    if (cuotasAdeudadas.length === 0) {
+    if (cuotasExigibles.length === 0) {
       containerCuotas.innerHTML = `
         <div class="text-center py-6 bg-emerald-50 rounded-2xl border border-emerald-200">
-          <p class="text-sm font-bold text-emerald-800">🎉 ¡El socio está completamente al día!</p>
-          <p class="text-xs text-emerald-600 mt-1">No registra ninguna cuota vencida ni pendiente de pago.</p>
+          <p class="text-sm font-bold text-emerald-800">🎉 ¡El socio está al día con el mes actual (Octubre)!</p>
+          <p class="text-xs text-emerald-600 mt-1">Tiene la cuota de Octubre abonada y no registra deudas en períodos anteriores.</p>
         </div>
       `;
     } else {
-      cuotasAdeudadas.forEach(c => {
+      cuotasExigibles.forEach(c => {
         cuotasRegistry.set(c.id, c);
         const saldo = c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total;
         const cobrado = c.total_cobrado || 0;
         const item = document.createElement('div');
-        item.className = 'p-3 bg-white rounded-2xl border border-slate-200 shadow-sm space-y-2 hover:border-slate-300 transition';
+        item.className = 'p-3 bg-white rounded-2xl border border-rose-200 shadow-sm space-y-2 hover:border-rose-300 transition';
         item.innerHTML = `
           <div class="flex justify-between items-start">
             <div>
@@ -1614,7 +1618,7 @@ async function abrirCuentaSocio(socioId) {
               <p class="text-[11px] text-slate-400 font-mono">Vencimiento: ${c.fecha_vencimiento}</p>
             </div>
             <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${c.estado === 'Parcial' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'}">
-              ${c.estado === 'Parcial' ? '🟠 Pago Parcial' : '! Vencida/Impaga'}
+              ${c.estado === 'Parcial' ? '🟠 Pago Parcial' : '! Cuota Adeudada'}
             </span>
           </div>
 
@@ -1645,6 +1649,34 @@ async function abrirCuentaSocio(socioId) {
           </div>
         `;
         containerCuotas.appendChild(item);
+      });
+    }
+
+    // Cuotas futuras opcionales
+    if (cuotasFuturas.length > 0) {
+      const headerFuturas = document.createElement('div');
+      headerFuturas.className = 'pt-2 pb-1 text-xs font-bold text-slate-500 flex items-center gap-1.5';
+      headerFuturas.innerHTML = '<span>📅 Cuotas Futuras no vencidas (Adelantar pago):</span>';
+      containerCuotas.appendChild(headerFuturas);
+
+      cuotasFuturas.forEach(c => {
+        cuotasRegistry.set(c.id, c);
+        const saldo = c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total;
+        const itemFut = document.createElement('div');
+        itemFut.className = 'p-2.5 bg-slate-50/80 rounded-xl border border-slate-200 flex justify-between items-center text-xs';
+        itemFut.innerHTML = `
+          <div>
+            <span class="font-bold text-slate-700">${c.periodo} &bull; ${c.concepto}</span>
+            <span class="text-[10px] text-slate-400 block">Vto: ${c.fecha_vencimiento} (Aún no vencida)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="font-black text-slate-800">${formatCurrency(saldo)}</span>
+            <button onclick="cobrarCuotaEfectivoPorId(${c.id})" class="px-2 py-1 rounded-lg text-[11px] font-bold bg-slate-200 hover:bg-emerald-600 hover:text-white transition">
+              💵 Adelantar
+            </button>
+          </div>
+        `;
+        containerCuotas.appendChild(itemFut);
       });
     }
 
@@ -1729,10 +1761,10 @@ async function cobrarCuotaEfectivoDirecto(cuota) {
 
 async function cancelarTodaLaDeudaEfectivo() {
   if (!socioActualCuentaId || !socioActualCuenta) return;
-  const cuotasAdeudadas = (socioActualCuenta.cuotas || []).filter(c => (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total) > 0);
+  const cuotasAdeudadas = (socioActualCuenta.cuotas || []).filter(c => c.periodo <= '2026-10' && (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total) > 0);
   const totalDeuda = cuotasAdeudadas.reduce((acc, c) => acc + (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total), 0);
 
-  const confirmacion = confirm(`¿Confirmar cobro de TODA LA DEUDA (${formatCurrency(totalDeuda)} en EFECTIVO) de ${socioActualCuenta.nombre} ${socioActualCuenta.apellido}? Se cancelarán ${cuotasAdeudadas.length} cuotas adeudadas.`);
+  const confirmacion = confirm(`¿Confirmar cobro de LA DEUDA EXIGIBLE (${formatCurrency(totalDeuda)} en EFECTIVO) de ${socioActualCuenta.nombre} ${socioActualCuenta.apellido}? Se cancelarán ${cuotasAdeudadas.length} cuotas adeudadas hasta Octubre.`);
   if (!confirmacion) return;
 
   try {
