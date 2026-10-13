@@ -510,6 +510,18 @@ function renderTablaDetalleMensual() {
 // ==========================================
 // 2. SOCIOS
 // ==========================================
+window.filtrarPorPrefijo = function(prefix) {
+  const input = document.getElementById('filtroSocioSearch');
+  if (input) {
+    input.value = prefix;
+  }
+  const catSelect = document.getElementById('filtroSocioCategoria');
+  if (catSelect && prefix === '') {
+    catSelect.value = '';
+  }
+  loadSocios();
+};
+
 async function loadSocios() {
   const search = document.getElementById('filtroSocioSearch').value;
   const categoria_id = document.getElementById('filtroSocioCategoria').value;

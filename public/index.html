@@ -198,18 +198,31 @@
       </div>
 
       <!-- Filtros -->
-      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap gap-4 items-center">
-        <div class="flex-1 min-w-[240px]">
-          <input type="text" id="filtroSocioSearch" oninput="loadSocios()" placeholder="Buscar por Nombre, DNI o N° Socio..." class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 space-y-3">
+        <div class="flex flex-wrap gap-4 items-center">
+          <div class="flex-1 min-w-[240px]">
+            <input type="text" id="filtroSocioSearch" oninput="loadSocios()" placeholder="Buscar por Nombre, DNI o N° Socio (ej: FUND, Alaniz)..." class="w-full px-4 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+          </div>
+          <select id="filtroSocioCategoria" onchange="loadSocios()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="">Todas las categorías</option>
+          </select>
+          <select id="filtroSocioEstado" onchange="loadSocios()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            <option value="">Todos los estados</option>
+            <option value="Activo">Activos</option>
+            <option value="Inactivo">Inactivos</option>
+          </select>
         </div>
-        <select id="filtroSocioCategoria" onchange="loadSocios()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-          <option value="">Todas las categorías</option>
-        </select>
-        <select id="filtroSocioEstado" onchange="loadSocios()" class="px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-          <option value="">Todos los estados</option>
-          <option value="Activo">Activos</option>
-          <option value="Inactivo">Inactivos</option>
-        </select>
+        <!-- Accesos rápidos por grupo/disciplina -->
+        <div class="flex flex-wrap gap-1.5 pt-1 border-t border-slate-100 text-xs">
+          <span class="text-slate-400 self-center font-medium mr-1">Filtrar rápido:</span>
+          <button type="button" onclick="filtrarPorPrefijo('')" class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold transition">Todos (174)</button>
+          <button type="button" onclick="filtrarPorPrefijo('FUND')" class="px-2.5 py-1 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold transition">🏛️ Fundadores (34)</button>
+          <button type="button" onclick="filtrarPorPrefijo('FUT')" class="px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold transition">⚽ Fútbol +35 (26)</button>
+          <button type="button" onclick="filtrarPorPrefijo('ATL')" class="px-2.5 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold transition">🏃 Atletismo (20)</button>
+          <button type="button" onclick="filtrarPorPrefijo('HB')" class="px-2.5 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold transition">🤾 Handball (27)</button>
+          <button type="button" onclick="filtrarPorPrefijo('V')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold transition">🏐 Voley (38)</button>
+          <button type="button" onclick="filtrarPorPrefijo('GEN')" class="px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-bold transition">👥 Generales (29)</button>
+        </div>
       </div>
 
       <!-- Tabla Socios -->
