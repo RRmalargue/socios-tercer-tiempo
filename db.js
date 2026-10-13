@@ -102,83 +102,142 @@ function initDatabase() {
 }
 
 function seedInitialData() {
+  // Asegurar las 4 categorías oficiales
   const countCategorias = db.prepare('SELECT COUNT(*) as count FROM categorias').get().count;
-  if (countCategorias > 0) return; // Ya contiene datos
+  if (countCategorias === 0) {
+    const insertCategoria = db.prepare('INSERT INTO categorias (nombre, cuota_base, descripcion) VALUES (?, ?, ?)');
+    insertCategoria.run('Socio Activo', 12000, 'Socio con derecho social pleno y uso de instalaciones');
+    insertCategoria.run('Socio Deportivo', 14000, 'Socio federado que participa en disciplinas deportivas del club');
+    insertCategoria.run('Socio Cadete', 8500, 'Jóvenes menores de 16 años / divisiones formativas');
+    insertCategoria.run('Socio Vitalicio', 0, 'Socio con antigüedad estatutaria (Exento de cuota social)');
+  }
 
-  const insertCategoria = db.prepare('INSERT INTO categorias (nombre, cuota_base, descripcion) VALUES (?, ?, ?)');
-  insertCategoria.run('Socio Activo', 12000, 'Socio con derecho social pleno y uso de instalaciones');
-  insertCategoria.run('Socio Deportivo', 14000, 'Socio federado que participa en disciplinas deportivas del club');
-  insertCategoria.run('Socio Cadete', 8500, 'Jóvenes menores de 16 años / divisiones formativas');
-  insertCategoria.run('Socio Vitalicio', 0, 'Socio con antigüedad estatutaria (Exento de cuota social)');
+  // Asegurar disciplinas
+  const countDiscs = db.prepare('SELECT COUNT(*) as count FROM disciplinas').get().count;
+  if (countDiscs === 0) {
+    const insertDisciplina = db.prepare('INSERT INTO disciplinas (nombre, arancel_mensual, profesor, dias_horarios) VALUES (?, ?, ?, ?)');
+    insertDisciplina.run('Fútbol (Plantel Oficial y Formativo)', 10000, 'Cuerpo Técnico Fútbol', 'Mar a Vie 19:30 a 21:30');
+    insertDisciplina.run('Atletismo', 10000, 'Prof. de Atletismo & Trail', 'Lun, Mié y Vie 18:00 a 20:00');
+    insertDisciplina.run('Handball Femenino', 10000, 'Prof. Handball Femenino', 'Mar y Jue 19:00 a 21:00');
+    insertDisciplina.run('Handball Masculino', 10000, 'Prof. Handball Masculino', 'Mar y Jue 21:00 a 23:00');
+    insertDisciplina.run('Voley Femenino', 10000, 'Prof. Voley Femenino', 'Lun, Mié y Vie 20:00 a 22:00');
+    insertDisciplina.run('Escuela de Voley Femenino', 10000, 'Prof. Formativa Voley', 'Lun y Mié 17:30 a 19:00');
+    insertDisciplina.run('Voley Masculino', 10000, 'Prof. Voley Masculino', 'Mar, Jue y Sáb 20:30 a 22:30');
+    insertDisciplina.run('Institucional', 10000, 'Secretaría Club', 'Lun a Sáb');
+  }
 
-  const insertDisciplina = db.prepare('INSERT INTO disciplinas (nombre, arancel_mensual, profesor, dias_horarios) VALUES (?, ?, ?, ?)');
-  insertDisciplina.run('Fútbol (Plantel Oficial y Formativo)', 5000, 'Cuerpo Técnico Fútbol', 'Mar a Vie 19:30 a 21:30 - Fines de semana partidos');
-  insertDisciplina.run('Atletismo', 4500, 'Prof. de Atletismo & Trail', 'Lun, Mié y Vie 18:00 a 20:00');
-  insertDisciplina.run('Handball Femenino', 5000, 'Prof. Handball Femenino', 'Mar y Jue 19:00 a 21:00');
-  insertDisciplina.run('Handball Masculino', 5000, 'Prof. Handball Masculino', 'Mar y Jue 21:00 a 23:00');
-  insertDisciplina.run('Voley Femenino', 5500, 'Prof. Voley Femenino', 'Lun, Mié y Vie 20:00 a 22:00');
-  insertDisciplina.run('Escuela de Voley Femenino', 4500, 'Prof. Formativa Voley', 'Lun y Mié 17:30 a 19:00');
-  insertDisciplina.run('Voley Masculino', 5500, 'Prof. Voley Masculino', 'Mar, Jue y Sáb 20:30 a 22:30');
-  insertDisciplina.run('Newcom', 4000, 'Prof. Newcom / Deporte Adaptado', 'Mar y Jue 16:00 a 18:00');
+  // Verificar si ya tenemos el padrón real cargado (174 socios)
+  const countSocios = db.prepare('SELECT COUNT(*) as count FROM socios').get().count;
+  if (countSocios >= 50) {
+    return; // Ya contiene el padrón real
+  }
 
-  // Socios de ejemplo
-  const insertSocio = db.prepare(`
-    INSERT INTO socios (numero_socio, nombre, apellido, dni, email, telefono, categoria_id, fecha_alta, estado, grupo_familiar_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  console.log('🔄 Inicializando base de datos con los 174 socios reales del Club Tercer Tiempo...');
+  
+  const fs = require('fs');
+  const jsonPath = path.join(__dirname, 'padron_oficial_2026.json');
+  if (!fs.existsSync(jsonPath)) return;
 
-  const s1 = insertSocio.run('SOC-1001', 'Lucas', 'Fernández', '38492011', 'lucas.fernandez@email.com', '+54 11 4455-8899', 1, '2024-03-15', 'Activo', null);
-  const s2 = insertSocio.run('SOC-1002', 'Sofía', 'Martínez', '42110293', 'sofia.martinez@email.com', '+54 11 5566-7788', 1, '2024-05-10', 'Activo', 'FAM-01');
-  const s3 = insertSocio.run('SOC-1003', 'Joaquín', 'Martínez', '50239102', 'padres.martinez@email.com', '+54 11 5566-7788', 3, '2024-05-10', 'Activo', 'FAM-01');
-  const s4 = insertSocio.run('SOC-1004', 'Gonzalo', 'Ríos', '35901244', 'gonzalo.rios@email.com', '+54 11 3322-1100', 1, '2023-01-20', 'Activo', null);
-  const s5 = insertSocio.run('SOC-1005', 'Valentina', 'Pérez', '44019283', 'valen.perez@email.com', '+54 11 9988-2233', 2, '2024-08-01', 'Activo', null);
-  const s6 = insertSocio.run('SOC-1006', 'Roberto', 'Navarro', '14209384', 'roberto.navarro@email.com', '+54 11 1234-5678', 4, '1992-04-10', 'Activo', null);
+  const sociosData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
 
-  // Inscribir a disciplinas
-  const insertSocioDisc = db.prepare('INSERT INTO socio_disciplinas (socio_id, disciplina_id) VALUES (?, ?)');
-  insertSocioDisc.run(s1.lastInsertRowid, 2); // Lucas -> Natación
-  insertSocioDisc.run(s1.lastInsertRowid, 4); // Lucas -> Gimnasio
-  insertSocioDisc.run(s2.lastInsertRowid, 5); // Sofia -> Tenis
-  insertSocioDisc.run(s3.lastInsertRowid, 1); // Joaquín -> Fútbol
-  insertSocioDisc.run(s4.lastInsertRowid, 4); // Gonzalo -> Gimnasio
-  insertSocioDisc.run(s5.lastInsertRowid, 3); // Valentina -> Básquet
+  const catActivo = db.prepare("SELECT id FROM categorias WHERE nombre LIKE '%Activo%'").get()?.id || 1;
+  const catDeportivo = db.prepare("SELECT id FROM categorias WHERE nombre LIKE '%Deportivo%'").get()?.id || 2;
+  const catCadete = db.prepare("SELECT id FROM categorias WHERE nombre LIKE '%Cadete%'").get()?.id || 3;
+  const catVitalicio = db.prepare("SELECT id FROM categorias WHERE nombre LIKE '%Vitalicio%'").get()?.id || 4;
 
-  // Generar cuotas para el mes actual (2026-10) y el mes anterior (2026-09)
-  const insertCuota = db.prepare(`
-    INSERT INTO cuotas (socio_id, periodo, mes, anio, concepto, monto_original, descuento, recargo, monto_total, fecha_vencimiento, estado, fecha_creacion)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+  const discMap = {};
+  db.prepare('SELECT id, nombre FROM disciplinas').all().forEach(d => { discMap[d.nombre] = d.id; });
+  const defaultDiscId = db.prepare('SELECT id FROM disciplinas LIMIT 1').get()?.id || 1;
 
-  // Cuotas de Septiembre 2026 (Pagadas en su mayoría)
-  const c1_sep = insertCuota.run(s1.lastInsertRowid, '2026-09', 9, 2026, 'Cuota Social + Natación + Gimnasio', 29500, 0, 0, 29500, '2026-09-10', 'Pagada', '2026-09-01');
-  const c2_sep = insertCuota.run(s2.lastInsertRowid, '2026-09', 9, 2026, 'Cuota Social + Tenis', 23000, 0, 0, 23000, '2026-09-10', 'Pagada', '2026-09-01');
-  const c3_sep = insertCuota.run(s3.lastInsertRowid, '2026-09', 9, 2026, 'Cuota Social Infantil + Fútbol', 13000, 0, 0, 13000, '2026-09-10', 'Pagada', '2026-09-01');
-  const c4_sep = insertCuota.run(s4.lastInsertRowid, '2026-09', 9, 2026, 'Cuota Social + Gimnasio', 20000, 0, 2000, 22000, '2026-09-10', 'Vencida', '2026-09-01');
+  const monthCodes = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'];
+  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
-  // Cuotas de Octubre 2026 (Mes corriente)
-  const c1_oct = insertCuota.run(s1.lastInsertRowid, '2026-10', 10, 2026, 'Cuota Social + Natación + Gimnasio', 29500, 0, 0, 29500, '2026-10-10', 'Pagada', '2026-10-01');
-  const c2_oct = insertCuota.run(s2.lastInsertRowid, '2026-10', 10, 2026, 'Cuota Social + Tenis', 23000, 0, 0, 23000, '2026-10-10', 'Pendiente', '2026-10-10');
-  const c3_oct = insertCuota.run(s3.lastInsertRowid, '2026-10', 10, 2026, 'Cuota Social Infantil + Fútbol', 13000, 0, 0, 13000, '2026-10-10', 'Pendiente', '2026-10-10');
-  const c4_oct = insertCuota.run(s4.lastInsertRowid, '2026-10', 10, 2026, 'Cuota Social + Gimnasio', 20000, 0, 0, 2000, '2026-10-10', 'Pendiente', '2026-10-01');
-  const c5_oct = insertCuota.run(s5.lastInsertRowid, '2026-10', 10, 2026, 'Cuota Social Cadete + Básquet', 15000, 0, 0, 15000, '2026-10-10', 'Pendiente', '2026-10-01');
+  const tx = db.transaction(() => {
+    db.exec('DELETE FROM pagos;');
+    db.exec('DELETE FROM cuotas;');
+    db.exec('DELETE FROM socio_disciplinas;');
+    db.exec('DELETE FROM comprobantes_transferencia;');
+    db.exec('DELETE FROM socios;');
+    db.exec("DELETE FROM sqlite_sequence WHERE name IN ('pagos', 'cuotas', 'socio_disciplinas', 'comprobantes_transferencia', 'socios');");
 
-  // Pagos registrados
-  const insertPago = db.prepare(`
-    INSERT INTO pagos (cuota_id, socio_id, monto_pagado, medio_pago, nro_comprobante, fecha_pago, observaciones, cajero)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
+    const insertSocio = db.prepare(`
+      INSERT INTO socios (numero_socio, nombre, apellido, dni, email, telefono, categoria_id, fecha_alta, estado, grupo_familiar_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
 
-  insertPago.run(c1_sep.lastInsertRowid, s1.lastInsertRowid, 29500, 'Transferencia', 'REC-2026-0001', '2026-09-08 11:25:00', 'Transferencia bancaria Banco Galicia', 'Admin Recepción');
-  insertPago.run(c2_sep.lastInsertRowid, s2.lastInsertRowid, 23000, 'Mercado Pago', 'REC-2026-0002', '2026-09-09 19:40:00', 'Pago con tarjeta débito por link', 'Sistema Automático');
-  insertPago.run(c3_sep.lastInsertRowid, s3.lastInsertRowid, 13000, 'Efectivo', 'REC-2026-0003', '2026-09-10 17:15:00', 'Cobro presencial en ventanilla', 'Admin Recepción');
-  insertPago.run(c1_oct.lastInsertRowid, s1.lastInsertRowid, 29500, 'Transferencia', 'REC-2026-0004', '2026-10-04 14:02:00', 'Comprobante verificado', 'Admin Recepción');
+    const insertSocioDisc = db.prepare('INSERT INTO socio_disciplinas (socio_id, disciplina_id) VALUES (?, ?)');
 
-  // Comprobante de transferencia pendiente de validación de Sofía Martínez
-  const insertComp = db.prepare(`
-    INSERT INTO comprobantes_transferencia (socio_id, cuota_id, banco_origen, nro_transaccion, monto_declarado, archivo_url, fecha_subida, estado)
-    VALUES (?, ?, ?, ?, ?, ?, ?, 'Pendiente')
-  `);
-  insertComp.run(s2.lastInsertRowid, c2_oct.lastInsertRowid, 'Banco Santander', 'TX-88991204', 23000, '', '2026-10-06 18:20:00');
+    const insertCuota = db.prepare(`
+      INSERT INTO cuotas (socio_id, periodo, mes, anio, concepto, monto_original, descuento, recargo, monto_total, fecha_vencimiento, estado, fecha_creacion)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertPago = db.prepare(`
+      INSERT INTO pagos (cuota_id, socio_id, monto_pagado, medio_pago, nro_comprobante, fecha_pago, observaciones, cajero)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    let socioCounter = 1;
+    let pagoCounter = 1;
+
+    for (let s of sociosData) {
+      let catId = catDeportivo;
+      if (s.catNombre === 'Socio Vitalicio') catId = catVitalicio;
+      else if (s.catNombre === 'Socio Activo') catId = catActivo;
+      else if (s.catNombre === 'Socio Cadete') catId = catCadete;
+
+      const discId = discMap[s.discNombre] || defaultDiscId;
+      const nroSocio = `${s.prefix}-${String(s.num).padStart(3, '0')}`;
+      const dni = `2026${String(socioCounter).padStart(4, '0')}`;
+      const email = `${s.nombre.toLowerCase().replace(/[^a-z0-9]/g, '')}.${s.apellido.toLowerCase().replace(/[^a-z0-9]/g, '')}@clubtercertiempo.ar`;
+      const telefono = '+54 9 260 4' + Math.floor(100000 + Math.random() * 900000);
+      const grupoFamiliar = s.tutor ? `Tutor: ${s.tutor}` : null;
+
+      const socioRes = insertSocio.run(
+        nroSocio, s.nombre, s.apellido, dni, email, telefono, catId, '2026-01-01', 'Activo', grupoFamiliar
+      );
+      const socioId = socioRes.lastInsertRowid;
+      insertSocioDisc.run(socioId, discId);
+
+      for (let m = 0; m < 12; m++) {
+        const val = s.cuotas[m] ? s.cuotas[m].trim() : '';
+        const mesNum = m + 1;
+        const periodo = `2026-${monthCodes[m]}`;
+        const mesNombre = monthNames[m];
+        const concepto = `Cuota Social ${mesNombre} 2026`;
+        const fechaVto = `2026-${monthCodes[m]}-10`;
+
+        if (val === 'XXX') continue;
+
+        const montoNum = parseFloat(val);
+        if (!isNaN(montoNum) && montoNum > 0) {
+          const cuotaRes = insertCuota.run(
+            socioId, periodo, mesNum, 2026, concepto,
+            montoNum, 0, 0, montoNum,
+            fechaVto, 'Pagada', `2026-${monthCodes[m]}-01`
+          );
+          const cuotaId = cuotaRes.lastInsertRowid;
+          const nroComp = `REC-2026-${String(pagoCounter++).padStart(5, '0')}`;
+          insertPago.run(
+            cuotaId, socioId, montoNum, 'Efectivo', nroComp,
+            `2026-${monthCodes[m]}-08 11:00:00`,
+            `Pago asentado en planilla oficial 2026 (${s.section})`,
+            'Tesorero Club'
+          );
+        } else {
+          insertCuota.run(
+            socioId, periodo, mesNum, 2026, concepto,
+            10000, 0, 0, 10000,
+            fechaVto, 'Pendiente', `2026-${monthCodes[m]}-01`
+          );
+        }
+      }
+      socioCounter++;
+    }
+  });
+
+  tx();
+  console.log('✅ Padrón oficial de 174 socios cargado exitosamente.');
 }
 
 initDatabase();
