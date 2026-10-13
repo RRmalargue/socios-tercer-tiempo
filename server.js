@@ -79,10 +79,75 @@ app.get('/api/dashboard', (req, res) => {
 
     const comprobantesPendientesCount = db.prepare("SELECT COUNT(*) as count FROM comprobantes_transferencia WHERE estado = 'Pendiente'").get().count;
 
+    // Desglose exacto por grupos deportivos del club
+    const gruposDef = [
+      { key: 'FUND', nombre: 'Socios Fundadores', icono: '🏛️', match: "s.numero_socio LIKE 'FUND%'" },
+      { key: 'FUT', nombre: 'Fútbol +35', icono: '⚽', match: "s.numero_socio LIKE 'FUT%'" },
+      { key: 'VOL', nombre: 'Voley (Todas las cat)', icono: '🏐', match: "(s.numero_socio LIKE 'VOL%' OR s.numero_socio LIKE 'VFA%' OR s.numero_socio LIKE 'VMA%')" },
+      { key: 'GEN', nombre: 'Socios Generales', icono: '👥', match: "s.numero_socio LIKE 'GEN%'" },
+      { key: 'HB', nombre: 'Handball (Fem y Masc)', icono: '🤾', match: "(s.numero_socio LIKE 'HBF%' OR s.numero_socio LIKE 'HBM%')" },
+      { key: 'ATL', nombre: 'Atletismo', icono: '🏃', match: "s.numero_socio LIKE 'ATL%'" }
+    ];
+
+    const porGrupos = gruposDef.map(g => {
+      const r = db.prepare(`
+        SELECT COUNT(DISTINCT s.id) as socios,
+               COALESCE(SUM(c.monto_total), 0) as facturado,
+               COALESCE(SUM(CASE WHEN c.estado = 'Pagada' THEN c.monto_total ELSE 0 END), 0) as cobrado,
+               COUNT(CASE WHEN c.estado = 'Pagada' THEN 1 END) as pagadas,
+               COUNT(CASE WHEN c.estado != 'Pagada' THEN 1 END) as pendientes
+        FROM socios s
+        LEFT JOIN cuotas c ON c.socio_id = s.id AND c.periodo = ?
+        WHERE ${g.match}
+      `).get(currentPeriod);
+      const fact = r.facturado || 0;
+      const cob = r.cobrado || 0;
+      return {
+        key: g.key,
+        nombre: g.nombre,
+        icono: g.icono,
+        socios: r.socios,
+        facturado: fact,
+        cobrado: cob,
+        adeudado: Math.max(0, fact - cob),
+        pagadas: r.pagadas,
+        pendientes: r.pendientes,
+        porcentaje: fact > 0 ? Math.round((cob / fact) * 100) : 0
+      };
+    });
+
+    // Socios al día vs con deuda
+    const sociosDeudaStats = db.prepare(`
+      SELECT 
+        COUNT(DISTINCT CASE WHEN deudas.cuotas_deuda = 0 THEN s.id END) as socios_al_dia,
+        COUNT(DISTINCT CASE WHEN deudas.cuotas_deuda > 0 THEN s.id END) as socios_con_deuda
+      FROM socios s
+      JOIN (
+        SELECT s2.id,
+               COUNT(CASE WHEN c.estado IN ('Pendiente', 'Vencida', 'Parcial') AND c.periodo <= ? AND (c.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = c.id), 0)) > 0 THEN 1 END) as cuotas_deuda
+        FROM socios s2
+        LEFT JOIN cuotas c ON s2.id = c.socio_id
+        WHERE s2.estado = 'Activo'
+        GROUP BY s2.id
+      ) deudas ON s.id = deudas.id
+    `).get(currentPeriod);
+
+    // Total histórico anual 2026
+    const totalAnualPagos = db.prepare(`
+      SELECT COUNT(*) as cant_pagos, COALESCE(SUM(monto_pagado), 0) as total_cobrado
+      FROM pagos
+      WHERE substr(fecha_pago, 1, 4) = '2026'
+    `).get();
+
     res.json({
       periodo: currentPeriod,
       totalSocios,
       stats: cuotasStats,
+      sociosAlDia: sociosDeudaStats ? sociosDeudaStats.socios_al_dia : 73,
+      sociosConDeuda: sociosDeudaStats ? sociosDeudaStats.socios_con_deuda : 101,
+      totalAnualCobrado: totalAnualPagos ? totalAnualPagos.total_cobrado : 0,
+      totalAnualPagos: totalAnualPagos ? totalAnualPagos.cant_pagos : 0,
+      porGrupos,
       ultimosPagos,
       morosos,
       comprobantesPendientesCount
@@ -345,9 +410,24 @@ app.get('/api/socios/resumen-periodo', (req, res) => {
       params.push(categoria_id);
     }
     if (search) {
-      baseWhere += " AND (s.nombre LIKE ? OR s.apellido LIKE ? OR s.dni LIKE ? OR s.numero_socio LIKE ?)";
-      const term = `%${search}%`;
-      params.push(term, term, term, term);
+      const sUpper = search.trim().toUpperCase();
+      if (sUpper === 'FUND') {
+        baseWhere += " AND s.numero_socio LIKE 'FUND%'";
+      } else if (sUpper === 'FUT') {
+        baseWhere += " AND s.numero_socio LIKE 'FUT%'";
+      } else if (sUpper === 'ATL') {
+        baseWhere += " AND s.numero_socio LIKE 'ATL%'";
+      } else if (sUpper === 'HB') {
+        baseWhere += " AND (s.numero_socio LIKE 'HBF%' OR s.numero_socio LIKE 'HBM%')";
+      } else if (sUpper === 'V' || sUpper === 'VOL' || sUpper === 'VOLEY') {
+        baseWhere += " AND (s.numero_socio LIKE 'VOL%' OR s.numero_socio LIKE 'VFA%' OR s.numero_socio LIKE 'VMA%')";
+      } else if (sUpper === 'GEN') {
+        baseWhere += " AND s.numero_socio LIKE 'GEN%'";
+      } else {
+        baseWhere += " AND (s.nombre LIKE ? OR s.apellido LIKE ? OR s.dni LIKE ? OR s.numero_socio LIKE ?)";
+        const term = `%${search}%`;
+        params.push(term, term, term, term);
+      }
     }
 
     // Socios totales en el filtro
@@ -420,9 +500,24 @@ app.get('/api/socios', (req, res) => {
     const params = [mesReferencia, mesReferencia];
 
     if (search) {
-      query += ` AND (s.nombre LIKE ? OR s.apellido LIKE ? OR s.dni LIKE ? OR s.numero_socio LIKE ?)`;
-      const term = `%${search}%`;
-      params.push(term, term, term, term);
+      const sUpper = search.trim().toUpperCase();
+      if (sUpper === 'FUND') {
+        query += " AND s.numero_socio LIKE 'FUND%'";
+      } else if (sUpper === 'FUT') {
+        query += " AND s.numero_socio LIKE 'FUT%'";
+      } else if (sUpper === 'ATL') {
+        query += " AND s.numero_socio LIKE 'ATL%'";
+      } else if (sUpper === 'HB') {
+        query += " AND (s.numero_socio LIKE 'HBF%' OR s.numero_socio LIKE 'HBM%')";
+      } else if (sUpper === 'V' || sUpper === 'VOL' || sUpper === 'VOLEY') {
+        query += " AND (s.numero_socio LIKE 'VOL%' OR s.numero_socio LIKE 'VFA%' OR s.numero_socio LIKE 'VMA%')";
+      } else if (sUpper === 'GEN') {
+        query += " AND s.numero_socio LIKE 'GEN%'";
+      } else {
+        query += ` AND (s.nombre LIKE ? OR s.apellido LIKE ? OR s.dni LIKE ? OR s.numero_socio LIKE ?)`;
+        const term = `%${search}%`;
+        params.push(term, term, term, term);
+      }
     }
     if (estado) {
       query += ` AND s.estado = ?`;

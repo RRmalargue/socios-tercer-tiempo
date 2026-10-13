@@ -53,54 +53,70 @@
     </div>
   </div>
 
-  <!-- Header / Navbar -->
-  <header class="bg-zinc-950 text-white shadow-xl sticky top-0 z-30 border-b border-emerald-500/30">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16">
-        <div class="flex items-center space-x-3">
-          <img src="/logo.jpg" alt="Escudo Club Tercer Tiempo" class="w-11 h-11 rounded-xl object-contain shadow-md ring-2 ring-emerald-500/80 bg-zinc-900 p-0.5">
+  <!-- Header / Navbar con Colores Alegóricos al Club (Verde Esmeralda Deportivo, Verde Bosque & Negro Grafito) -->
+  <header class="bg-gradient-to-r from-zinc-950 via-[#0a1811] to-zinc-950 text-white shadow-2xl sticky top-0 z-30 border-b-2 border-emerald-500 shadow-[0_4px_30px_rgba(16,185,129,0.25)]">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 sm:h-20 gap-2">
+        <!-- Logo y Marca Club Tercer Tiempo Malargüe -->
+        <div class="flex items-center space-x-3 min-w-max">
+          <div class="relative group">
+            <div class="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-2xl blur-sm opacity-60 group-hover:opacity-100 transition duration-300"></div>
+            <img src="/logo.jpg" alt="Escudo Club Tercer Tiempo" class="relative w-11 h-11 sm:w-13 sm:h-13 rounded-2xl object-contain bg-zinc-950 p-0.5 ring-2 ring-emerald-400 shadow-xl">
+          </div>
           <div>
             <div class="flex items-center gap-2">
-              <h1 class="font-extrabold text-base sm:text-lg tracking-tight">Club Tercer Tiempo</h1>
-              <span class="bg-emerald-500 text-zinc-950 font-black text-[10px] uppercase px-1.5 py-0.5 rounded shadow">MALARGÜE</span>
+              <h1 class="font-black text-base sm:text-xl tracking-tight bg-gradient-to-r from-white via-emerald-100 to-emerald-300 bg-clip-text text-transparent">
+                Club Tercer Tiempo
+              </h1>
+              <span class="bg-gradient-to-r from-emerald-400 to-emerald-500 text-zinc-950 font-black text-[10px] tracking-wider uppercase px-2 py-0.5 rounded-full shadow-md font-mono">
+                MALARGÜE
+              </span>
             </div>
-            <p class="text-xs text-emerald-400/90 font-medium">18 Socios Fundadores &bull; Sede Oficial</p>
+            <p class="text-xs text-emerald-400 font-semibold tracking-wide flex items-center gap-1.5 mt-0.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"></span>
+              Sede Oficial &bull; Temporada 2026
+            </p>
           </div>
         </div>
 
-        <nav class="flex items-center space-x-1 sm:space-x-1.5">
-          <button onclick="setTab('dashboard')" id="tabBtn-dashboard" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all bg-emerald-600 text-white shadow-sm">
-            📊 Dashboard
+        <!-- Menú de Navegación con Colores Alegóricos del Club -->
+        <nav class="flex items-center space-x-1 sm:space-x-1.5 overflow-x-auto py-1">
+          <button onclick="setTab('dashboard')" id="tabBtn-dashboard" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-500 text-zinc-950 font-black shadow-[0_2px_15px_rgba(16,185,129,0.5)] border border-emerald-300 flex items-center gap-1.5 cursor-pointer">
+            <span>📊</span> Dashboard
           </button>
-          <button onclick="setTab('socios')" id="tabBtn-socios" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-300 hover:text-white hover:bg-zinc-800">
-            👥 Socios
+          <button onclick="setTab('socios')" id="tabBtn-socios" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
+            <span>👥</span> Socios
           </button>
-          <button onclick="setTab('cuotas')" id="tabBtn-cuotas" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-300 hover:text-white hover:bg-zinc-800">
-            📅 Cuotas
+          <button onclick="setTab('cuotas')" id="tabBtn-cuotas" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
+            <span>📅</span> Cuotas
           </button>
-          <button onclick="setTab('pagos')" id="tabBtn-pagos" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-300 hover:text-white hover:bg-zinc-800">
-            💳 Caja
+          <button onclick="setTab('pagos')" id="tabBtn-pagos" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
+            <span>💳</span> Caja
           </button>
-          <button onclick="setTab('tesoreria')" id="tabBtn-tesoreria" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-1.5">
+          <button onclick="setTab('tesoreria')" id="tabBtn-tesoreria" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
             <span>📥</span> Conciliar
-            <span id="badgeComprobantesPendientes" class="hidden bg-rose-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full">0</span>
+            <span id="badgeComprobantesPendientes" class="hidden bg-rose-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full shadow">0</span>
           </button>
-          <button onclick="setTab('config')" id="tabBtn-config" class="nav-tab px-3 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-1.5">
+          <button onclick="setTab('config')" id="tabBtn-config" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
             <span>⚙️</span> Aranceles
           </button>
-          <a href="/socio.html" target="_blank" class="ml-2 bg-emerald-400 hover:bg-emerald-300 text-zinc-950 font-black px-3 py-1.5 rounded-lg text-xs shadow flex items-center gap-1.5 transition">
+
+          <!-- Acciones Rápidas -->
+          <div class="h-6 w-px bg-emerald-800/60 mx-1 hidden lg:block"></div>
+
+          <a href="/socio.html" target="_blank" class="hidden lg:flex bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 font-bold px-2.5 py-1.5 rounded-xl text-xs shadow items-center gap-1.5 transition">
             <span>📱</span> Portal Socio ↗
           </a>
-          <a href="/asociarme.html" target="_blank" class="bg-zinc-800 hover:bg-zinc-700 text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 font-bold px-3 py-1.5 rounded-lg text-xs shadow flex items-center gap-1.5 transition">
+          <a href="/asociarme.html" target="_blank" class="hidden lg:flex bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 font-bold px-2.5 py-1.5 rounded-xl text-xs shadow items-center gap-1.5 transition">
             <span>📝</span> Afiliación ↗
           </a>
-          <button onclick="descargarBackup()" title="Descargar Copia de Seguridad completa (.db)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-3 py-1.5 rounded-lg text-xs shadow flex items-center gap-1 transition ml-1 cursor-pointer">
+          <button onclick="descargarBackup()" title="Descargar Copia de Seguridad completa (.db)" class="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-zinc-950 font-black px-2.5 py-1.5 rounded-xl text-xs shadow-[0_0_15px_rgba(16,185,129,0.35)] flex items-center gap-1 transition ml-1 cursor-pointer">
             <span>💾</span> Respaldar
           </button>
-          <button onclick="abrirModalDeshacer()" title="Historial y Deshacer Acciones" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 transition ml-1 cursor-pointer">
+          <button onclick="abrirModalDeshacer()" title="Historial y Deshacer Acciones" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold px-2 py-1.5 rounded-xl text-xs flex items-center gap-1 transition ml-1 cursor-pointer">
             <span>↶</span> Deshacer
           </button>
-          <button onclick="cerrarSesionAdmin()" title="Cerrar sesión de secretaría" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1 transition ml-1">
+          <button onclick="cerrarSesionAdmin()" title="Cerrar sesión de secretaría" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold px-2 py-1.5 rounded-xl text-xs flex items-center gap-1 transition ml-1 cursor-pointer">
             <span>🔒</span> Salir
           </button>
         </nav>
@@ -112,99 +128,172 @@
   <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
     <!-- ========================================== -->
-    <!-- 1. DASHBOARD VIEW -->
+    <!-- 1. DASHBOARD VIEW (OPTIMIZADO Y EJECUTIVO) -->
     <!-- ========================================== -->
-    <section id="view-dashboard" class="tab-content space-y-5">
+    <section id="view-dashboard" class="tab-content space-y-6">
 
-      <!-- Barra Superior Simple: Título y Período -->
-      <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white px-5 py-3.5 rounded-2xl shadow-sm border border-slate-200">
-        <div>
-          <h2 class="text-xl font-black text-slate-900 tracking-tight">Dashboard</h2>
+      <!-- Banner Institucional Superior: Colores del Escudo y Acciones Directas -->
+      <div class="bg-gradient-to-br from-zinc-950 via-[#0d2217] to-zinc-950 rounded-3xl p-5 sm:p-6 text-white border border-emerald-500/40 shadow-xl relative overflow-hidden">
+        <div class="absolute -right-10 -bottom-10 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 relative z-10">
+          <div class="space-y-1">
+            <div class="flex items-center gap-2">
+              <span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[11px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                TEMPORADA OFICIAL 2026
+              </span>
+              <span class="text-xs text-slate-400 font-medium">Asociación Club Tercer Tiempo Malargüe</span>
+            </div>
+            <h2 class="text-2xl sm:text-3xl font-black tracking-tight text-white">
+              Panel de Control General
+            </h2>
+            <p class="text-xs sm:text-sm text-emerald-400/90 font-medium">
+              Control de cobranzas, padrón social y recaudación por disciplina deportiva
+            </p>
+          </div>
+
+          <!-- Selector de Mes y Accesos Rápidos -->
+          <div class="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+            <div class="bg-zinc-900/80 border border-emerald-500/40 px-3 py-1.5 rounded-2xl flex items-center gap-2">
+              <span class="text-xs font-bold text-emerald-400">Mes:</span>
+              <input type="month" id="dashPeriodoInput" value="2026-10" onchange="loadDashboard()" class="bg-transparent text-white font-black text-xs sm:text-sm focus:outline-none cursor-pointer">
+            </div>
+            <button onclick="openGenerarCuotasModal()" class="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black text-xs px-3.5 py-2.5 rounded-2xl transition shadow-lg shadow-emerald-500/30 flex items-center gap-1.5 cursor-pointer">
+              <span>⚡</span> Generar Cuotas
+            </button>
+            <button onclick="openNuevoSocioModal()" class="bg-zinc-900 hover:bg-zinc-800 text-emerald-400 hover:text-white border border-emerald-500/40 font-bold text-xs px-3.5 py-2.5 rounded-2xl transition flex items-center gap-1.5 cursor-pointer">
+              <span>➕</span> Nuevo Socio
+            </button>
+          </div>
         </div>
-        <div class="flex items-center gap-2">
-          <input type="month" id="dashPeriodoInput" value="2026-10" onchange="loadDashboard()" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs sm:text-sm font-semibold focus:outline-none">
-          <button onclick="openGenerarCuotasModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shadow-sm">
-            + Generar Cuotas
+      </div>
+
+      <!-- 4 Tarjetas de Métricas Ejecutivas del Mes (KPIs Deportivos) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- 1. Padrón Total -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 hover:border-emerald-400 transition flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-bold text-slate-500 uppercase tracking-wider">Padrón Activo</p>
+            <div class="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-700 font-black flex items-center justify-center text-lg border border-emerald-100">
+              👥
+            </div>
+          </div>
+          <div class="my-2">
+            <h3 id="kpiTotalSocios" class="text-3xl font-black text-slate-900 tracking-tight">174</h3>
+            <p id="kpiSociosDetalle" class="text-xs font-semibold text-slate-500 mt-1">
+              <span class="text-emerald-600 font-bold">73 Al Día</span> &bull; <span class="text-rose-600 font-bold">101 Con Deuda</span>
+            </p>
+          </div>
+          <button onclick="setTab('socios')" class="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 pt-2 border-t border-slate-100 flex items-center justify-between">
+            <span>Ver listado completo</span> ➔
           </button>
         </div>
+
+        <!-- 2. Cobrado en el Mes -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 hover:border-emerald-400 transition flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-bold text-emerald-700 uppercase tracking-wider">Cobrado en el Mes</p>
+            <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 font-black flex items-center justify-center text-lg border border-emerald-500/20">
+              💰
+            </div>
+          </div>
+          <div class="my-2">
+            <h3 id="kpiCobrado" class="text-3xl font-black text-emerald-600 tracking-tight">$700.000</h3>
+            <p id="kpiCobradoDetalle" class="text-xs font-semibold text-slate-500 mt-1">
+              70 cuotas cobradas (41%)
+            </p>
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div id="kpiBarraCobro" class="bg-emerald-500 h-1.5 rounded-full" style="width: 41%"></div>
+            </div>
+          </div>
+          <button onclick="setTab('pagos')" class="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 pt-2 border-t border-slate-100 flex items-center justify-between">
+            <span>Ver caja de cobranzas</span> ➔
+          </button>
+        </div>
+
+        <!-- 3. Deuda Pendiente del Mes -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 hover:border-rose-400 transition flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-bold text-rose-600 uppercase tracking-wider">Por Cobrar en el Mes</p>
+            <div class="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 font-black flex items-center justify-center text-lg border border-rose-100">
+              ⏳
+            </div>
+          </div>
+          <div class="my-2">
+            <h3 id="kpiPendiente" class="text-3xl font-black text-rose-600 tracking-tight">$1.010.000</h3>
+            <p id="kpiCantPendientes" class="text-xs font-semibold text-slate-500 mt-1">
+              101 cuotas impagas
+            </p>
+            <div class="w-full bg-slate-100 rounded-full h-1.5 mt-2 overflow-hidden">
+              <div class="bg-rose-500 h-1.5 rounded-full" style="width: 59%"></div>
+            </div>
+          </div>
+          <button onclick="setTab('cuotas')" class="text-[11px] font-bold text-rose-700 hover:text-rose-800 pt-2 border-t border-slate-100 flex items-center justify-between">
+            <span>Ver cuotas impagas</span> ➔
+          </button>
+        </div>
+
+        <!-- 4. Recaudación Anual Temporada 2026 -->
+        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 hover:border-emerald-400 transition flex flex-col justify-between">
+          <div class="flex items-center justify-between">
+            <p class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Acumulado Anual 2026</p>
+            <div class="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-700 font-black flex items-center justify-center text-lg border border-indigo-100">
+              🏆
+            </div>
+          </div>
+          <div class="my-2">
+            <h3 id="kpiTotalAnual" class="text-3xl font-black text-indigo-950 tracking-tight">$10.010.000</h3>
+            <p id="kpiTotalAnualDetalle" class="text-xs font-semibold text-slate-500 mt-1">
+              991 pagos en la temporada
+            </p>
+          </div>
+          <span class="text-[11px] font-bold text-slate-400 pt-2 border-t border-slate-100 flex items-center gap-1">
+            ✓ Cobranzas históricas registradas
+          </span>
+        </div>
       </div>
 
-      <!-- 3 Tarjetas Clave Simples -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <!-- Socios -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+      <!-- NUEVA SECCIÓN: Recaudación por Disciplina Deportiva (Reemplazo del gráfico de barras) -->
+      <div class="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b pb-3">
           <div>
-            <p class="text-xs font-bold text-slate-400 uppercase tracking-wider">Socios</p>
-            <h3 id="kpiTotalSocios" class="text-3xl font-black text-slate-900 mt-1">0</h3>
-            <p class="text-xs text-slate-400 mt-1">Padrón activo</p>
+            <div class="flex items-center gap-2">
+              <h3 class="font-black text-slate-900 text-lg tracking-tight">Cobranza por Disciplina Deportiva</h3>
+              <span class="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">Mes Actual</span>
+            </div>
+            <p class="text-xs text-slate-500">Hacé clic en cualquier deporte para ir al padrón con el filtro aplicado</p>
           </div>
-          <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center text-xl font-bold">
-            👥
-          </div>
+          <button onclick="setTab('socios')" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1">
+            <span>Ver todas en el padrón</span> ➔
+          </button>
         </div>
 
-        <!-- Recaudado -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-bold text-emerald-600 uppercase tracking-wider">Cobrado en el Mes</p>
-            <h3 id="kpiCobrado" class="text-3xl font-black text-emerald-600 mt-1">$0</h3>
-            <p id="kpiTasaCobro" class="text-xs text-slate-400 mt-1">Tasa: 0%</p>
-          </div>
-          <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center text-xl font-bold">
-            💰
-          </div>
-        </div>
-
-        <!-- Por Cobrar -->
-        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
-          <div>
-            <p class="text-xs font-bold text-rose-500 uppercase tracking-wider">Por Cobrar</p>
-            <h3 id="kpiPendiente" class="text-3xl font-black text-rose-600 mt-1">$0</h3>
-            <p id="kpiCantPendientes" class="text-xs text-slate-400 mt-1">0 cuotas pendientes</p>
-          </div>
-          <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center text-xl font-bold">
-            ⏳
-          </div>
+        <!-- Grilla de las 6 disciplinas del club -->
+        <div id="dashGruposGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          <!-- Inyectado dinámicamente por JS con los valores exactos -->
         </div>
       </div>
 
-      <!-- Gráfico Simple y Limpio de Recaudación Mensual -->
-      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-3">
-        <div class="flex justify-between items-center">
-          <div class="flex items-center gap-2">
-            <h3 class="font-black text-slate-900 text-base">Recaudación Mensual</h3>
-            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
-          </div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-xs text-slate-400 font-semibold">Año:</span>
-            <select id="selectGraficoAnio" onchange="cargarEstadisticasRecaudacion()" class="bg-slate-50 border border-slate-200 font-bold text-xs text-slate-800 px-2.5 py-1 rounded-lg focus:outline-none cursor-pointer">
-              <!-- Cargado dinámicamente -->
-            </select>
-          </div>
-        </div>
-        <div class="relative h-64 sm:h-72 w-full">
-          <canvas id="canvasGraficoPrincipal"></canvas>
-        </div>
-      </div>
-
-      <!-- Tablas Inferiores: Últimos Cobros y Morosos -->
+      <!-- Tablas Inferiores: Últimos Cobros en Caja y Morosos para Gestión -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <!-- Últimos Cobros -->
-        <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
+        <div class="lg:col-span-2 bg-white rounded-3xl shadow-sm border border-slate-200 p-5 sm:p-6">
           <div class="flex justify-between items-center mb-3">
-            <h3 class="font-bold text-slate-800 text-sm">Últimos Cobros</h3>
-            <button onclick="setTab('pagos')" class="text-xs text-indigo-600 font-semibold hover:underline">Ver todos ➔</button>
+            <div>
+              <h3 class="font-black text-slate-900 text-base">Últimos Cobros en Caja</h3>
+              <p class="text-xs text-slate-400">Recibos emitidos recientemente</p>
+            </div>
+            <button onclick="setTab('pagos')" class="text-xs text-emerald-700 font-bold hover:underline">Ver todos ➔</button>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 text-slate-400 font-semibold uppercase border-b">
+              <thead class="bg-slate-50 text-slate-500 font-bold uppercase border-b">
                 <tr>
-                  <th class="py-2 px-3">Recibo</th>
-                  <th class="py-2 px-3">Socio</th>
-                  <th class="py-2 px-3">Concepto</th>
-                  <th class="py-2 px-3">Monto</th>
-                  <th class="py-2 px-3">Medio</th>
-                  <th class="py-2 px-3">Fecha</th>
+                  <th class="py-2.5 px-3">Recibo</th>
+                  <th class="py-2.5 px-3">Socio</th>
+                  <th class="py-2.5 px-3">Concepto</th>
+                  <th class="py-2.5 px-3">Monto</th>
+                  <th class="py-2.5 px-3">Medio</th>
+                  <th class="py-2.5 px-3">Fecha</th>
                 </tr>
               </thead>
               <tbody id="dashUltimosPagosTable" class="divide-y divide-slate-100">
@@ -215,10 +304,18 @@
         </div>
 
         <!-- Socios con Mayor Deuda -->
-        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5">
-          <h3 class="font-bold text-rose-600 text-sm mb-3">Socios con Deuda</h3>
-          <div id="dashMorososList" class="space-y-2.5">
-            <!-- Inyectado por JS -->
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-200 p-5 sm:p-6 flex flex-col justify-between">
+          <div>
+            <div class="flex justify-between items-center mb-3">
+              <div>
+                <h3 class="font-black text-rose-600 text-base">Socios a Gestionar</h3>
+                <p class="text-xs text-slate-400">Mayor saldo exigible</p>
+              </div>
+              <button onclick="setTab('cuotas')" class="text-xs text-rose-600 font-bold hover:underline">Ver deuda ➔</button>
+            </div>
+            <div id="dashMorososList" class="space-y-2.5">
+              <!-- Inyectado por JS -->
+            </div>
           </div>
         </div>
       </div>
@@ -278,7 +375,7 @@
           <button type="button" onclick="filtrarPorPrefijo('FUT')" class="px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold transition">⚽ Fútbol +35 (26)</button>
           <button type="button" onclick="filtrarPorPrefijo('ATL')" class="px-2.5 py-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold transition">🏃 Atletismo (20)</button>
           <button type="button" onclick="filtrarPorPrefijo('HB')" class="px-2.5 py-1 rounded-lg bg-purple-100 hover:bg-purple-200 text-purple-900 font-bold transition">🤾 Handball (27)</button>
-          <button type="button" onclick="filtrarPorPrefijo('V')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold transition">🏐 Voley (38)</button>
+          <button type="button" onclick="filtrarPorPrefijo('VOL')" class="px-2.5 py-1 rounded-lg bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold transition">🏐 Voley (38)</button>
           <button type="button" onclick="filtrarPorPrefijo('GEN')" class="px-2.5 py-1 rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-900 font-bold transition">👥 Generales (29)</button>
         </div>
       </div>

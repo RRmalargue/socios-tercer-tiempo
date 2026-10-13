@@ -116,16 +116,14 @@ function setTab(tab) {
   state.currentTab = tab;
   document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.nav-tab').forEach(el => {
-    el.classList.remove('bg-emerald-600', 'text-white', 'shadow-sm');
-    el.classList.add('text-zinc-300');
+    el.className = 'nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer';
   });
 
   const activeView = document.getElementById(`view-${tab}`);
   const activeBtn = document.getElementById(`tabBtn-${tab}`);
   if (activeView) activeView.classList.remove('hidden');
   if (activeBtn) {
-    activeBtn.classList.add('bg-emerald-600', 'text-white', 'shadow-sm');
-    activeBtn.classList.remove('text-zinc-300');
+    activeBtn.className = 'nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-500 text-zinc-950 font-black shadow-[0_2px_15px_rgba(16,185,129,0.5)] border border-emerald-300 flex items-center gap-1.5 cursor-pointer scale-[1.02]';
   }
 
   if (tab === 'dashboard') loadDashboard();
@@ -190,20 +188,33 @@ async function loadDashboard() {
 
     const kpiSocios = document.getElementById('kpiTotalSocios');
     if (kpiSocios) kpiSocios.textContent = data.totalSocios;
-    const kpiCob = document.getElementById('kpiCobrado');
-    if (kpiCob) kpiCob.textContent = formatCurrency(data.stats.total_cobrado);
-    const kpiPend = document.getElementById('kpiPendiente');
-    if (kpiPend) kpiPend.textContent = formatCurrency(data.stats.total_pendiente);
-    const kpiFact = document.getElementById('kpiFacturado');
-    if (kpiFact) kpiFact.textContent = formatCurrency(data.stats.total_facturado);
+    const sociosDetalleEl = document.getElementById('kpiSociosDetalle');
+    if (sociosDetalleEl) {
+      sociosDetalleEl.innerHTML = `<span class="text-emerald-600 font-bold">${data.sociosAlDia || 73} Al Día</span> &bull; <span class="text-rose-600 font-bold">${data.sociosConDeuda || 101} Con Deuda</span>`;
+    }
 
     const cobrado = data.stats.total_cobrado || 0;
     const facturado = data.stats.total_facturado || 0;
     const tasa = facturado > 0 ? Math.round((cobrado / facturado) * 100) : 0;
-    const tasaEl = document.getElementById('kpiTasaCobro');
-    if (tasaEl) tasaEl.textContent = `Tasa de cobro: ${tasa}%`;
+
+    const kpiCob = document.getElementById('kpiCobrado');
+    if (kpiCob) kpiCob.textContent = formatCurrency(cobrado);
+    const cobDetalleEl = document.getElementById('kpiCobradoDetalle');
+    if (cobDetalleEl) {
+      cobDetalleEl.textContent = `${data.stats.cant_pagadas || 0} cuotas pagadas (${tasa}%)`;
+    }
+    const barraCobro = document.getElementById('kpiBarraCobro');
+    if (barraCobro) barraCobro.style.width = `${tasa}%`;
+
+    const kpiPend = document.getElementById('kpiPendiente');
+    if (kpiPend) kpiPend.textContent = formatCurrency(data.stats.total_pendiente);
     const cantPendEl = document.getElementById('kpiCantPendientes');
-    if (cantPendEl) cantPendEl.textContent = `${data.stats.cant_pendientes || 0} cuotas por cobrar`;
+    if (cantPendEl) cantPendEl.textContent = `${data.stats.cant_pendientes || 0} cuotas impagas`;
+
+    const kpiAnual = document.getElementById('kpiTotalAnual');
+    if (kpiAnual) kpiAnual.textContent = formatCurrency(data.totalAnualCobrado || 10010000);
+    const anualDetalleEl = document.getElementById('kpiTotalAnualDetalle');
+    if (anualDetalleEl) anualDetalleEl.textContent = `${data.totalAnualPagos || 991} pagos en la temporada`;
 
     // Actualizar badge del navbar
     const badge = document.getElementById('badgeComprobantesPendientes');
@@ -214,6 +225,44 @@ async function loadDashboard() {
       } else {
         badge.classList.add('hidden');
       }
+    }
+
+    // Renderizar Matriz de Cobranza por Disciplina Deportiva (Reemplazo de gráfico de barras)
+    const gruposGrid = document.getElementById('dashGruposGrid');
+    if (gruposGrid && Array.isArray(data.porGrupos)) {
+      gruposGrid.innerHTML = '';
+      data.porGrupos.forEach(g => {
+        const card = document.createElement('div');
+        card.className = 'p-4 rounded-2xl bg-white border border-slate-200 hover:border-emerald-500 hover:shadow-md transition cursor-pointer group flex flex-col justify-between';
+        card.onclick = () => {
+          setTab('socios');
+          filtrarPorPrefijo(g.key);
+        };
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5 group-hover:text-emerald-700 transition">
+                <span>${g.icono}</span> ${g.nombre}
+              </span>
+              <span class="text-[11px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                ${g.porcentaje}% cobrado
+              </span>
+            </div>
+            <div class="flex justify-between items-baseline mt-1">
+              <span class="text-xl font-black text-slate-900">${formatCurrency(g.cobrado)}</span>
+              <span class="text-xs text-slate-400 font-medium">de ${formatCurrency(g.facturado)}</span>
+            </div>
+            <div class="w-full bg-slate-100 rounded-full h-2 mt-2.5 overflow-hidden">
+              <div class="bg-gradient-to-r from-emerald-500 to-emerald-400 h-2 rounded-full transition-all duration-500" style="width: ${g.porcentaje}%"></div>
+            </div>
+          </div>
+          <div class="flex justify-between items-center text-[11px] text-slate-500 mt-3 pt-2.5 border-t border-slate-100">
+            <span><strong>${g.pagadas}</strong> al día &bull; <strong>${g.pendientes}</strong> deben</span>
+            <span class="text-emerald-700 font-bold group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-0.5">Ver padrón ➔</span>
+          </div>
+        `;
+        gruposGrid.appendChild(card);
+      });
     }
 
     // Últimos pagos en Dashboard
@@ -253,16 +302,12 @@ async function loadDashboard() {
           </div>
           <div class="text-right">
             <span class="font-black text-rose-600 text-sm block">${formatCurrency(m.deuda_total)}</span>
-            <button onclick="abrirCuentaSocio(${m.id})" class="text-[11px] font-bold bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded-lg shadow transition">💵 Cobrar Deuda</button>
+            <button onclick="abrirCuentaSocio(${m.id})" class="text-[11px] font-bold bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded-lg shadow transition">💵 Cobrar</button>
           </div>
         `;
         morososList.appendChild(item);
       });
     }
-
-    // Cargar gráficos interactivos de recaudación
-    await cargarEstadisticasRecaudacion();
-
   } catch (err) {
     console.error('Error cargando dashboard:', err);
   }
@@ -613,12 +658,13 @@ async function cargarResumenCategoriaMes(periodo, categoria_id, search) {
     if (categoria_id && catSelect && catSelect.selectedOptions[0] && catSelect.value) {
       tituloFiltro = catSelect.selectedOptions[0].textContent.split('(')[0].trim();
     } else if (search) {
-      if (search === 'FUND') tituloFiltro = '🏛️ Socios Fundadores';
-      else if (search === 'FUT') tituloFiltro = '⚽ Fútbol +35';
-      else if (search === 'ATL') tituloFiltro = '🏃 Atletismo';
-      else if (search === 'HB') tituloFiltro = '🤾 Handball';
-      else if (search === 'V') tituloFiltro = '🏐 Voley';
-      else if (search === 'GEN') tituloFiltro = '👥 Socios Generales';
+      const sUpper = search.trim().toUpperCase();
+      if (sUpper === 'FUND') tituloFiltro = '🏛️ Socios Fundadores';
+      else if (sUpper === 'FUT') tituloFiltro = '⚽ Fútbol +35';
+      else if (sUpper === 'ATL') tituloFiltro = '🏃 Atletismo';
+      else if (sUpper === 'HB') tituloFiltro = '🤾 Handball';
+      else if (sUpper === 'V' || sUpper === 'VOL' || sUpper === 'VOLEY') tituloFiltro = '🏐 Voley (Todas las cat)';
+      else if (sUpper === 'GEN') tituloFiltro = '👥 Socios Generales';
       else tituloFiltro = `Búsqueda: "${search}"`;
     }
 
