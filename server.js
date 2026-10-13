@@ -47,12 +47,12 @@ app.get('/api/dashboard', (req, res) => {
              SUM(c.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = c.id), 0)) as deuda_total
       FROM socios s
       JOIN cuotas c ON s.id = c.socio_id
-      WHERE c.estado IN ('Pendiente', 'Vencida', 'Parcial')
+      WHERE c.estado IN ('Pendiente', 'Vencida', 'Parcial') AND c.periodo <= ?
       GROUP BY s.id
       HAVING deuda_total > 0
       ORDER BY deuda_total DESC
       LIMIT 5
-    `).all();
+    `).all(currentPeriod);
 
     const comprobantesPendientesCount = db.prepare("SELECT COUNT(*) as count FROM comprobantes_transferencia WHERE estado = 'Pendiente'").get().count;
 
@@ -312,11 +312,22 @@ app.delete('/api/disciplinas/:id', (req, res) => {
 // -------------------------------------------------------------
 app.get('/api/socios', (req, res) => {
   try {
-    const { search, estado, categoria_id } = req.query;
+    const { search, estado, categoria_id, periodo } = req.query;
+    const mesReferencia = periodo || '2026-10';
     let query = `
       SELECT s.*, c.nombre as categoria_nombre, c.cuota_base,
-        (SELECT COUNT(*) FROM cuotas q WHERE q.socio_id = s.id AND q.estado IN ('Pendiente', 'Vencida', 'Parcial') AND (q.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = q.id), 0)) > 0) as cuotas_pendientes,
-        (SELECT COALESCE(SUM(q.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = q.id), 0)), 0) FROM cuotas q WHERE q.socio_id = s.id AND q.estado IN ('Pendiente', 'Vencida', 'Parcial')) as deuda_total,
+        (SELECT COUNT(*) FROM cuotas q 
+         WHERE q.socio_id = s.id 
+           AND q.periodo <= ?
+           AND q.estado IN ('Pendiente', 'Vencida', 'Parcial') 
+           AND (q.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = q.id), 0)) > 0
+        ) as cuotas_pendientes,
+        (SELECT COALESCE(SUM(q.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = q.id), 0)), 0) 
+         FROM cuotas q 
+         WHERE q.socio_id = s.id 
+           AND q.periodo <= ?
+           AND q.estado IN ('Pendiente', 'Vencida', 'Parcial')
+        ) as deuda_total,
         (SELECT GROUP_CONCAT(d.nombre, ', ') 
          FROM socio_disciplinas sd 
          JOIN disciplinas d ON sd.disciplina_id = d.id 
@@ -325,7 +336,7 @@ app.get('/api/socios', (req, res) => {
       JOIN categorias c ON s.categoria_id = c.id
       WHERE 1=1
     `;
-    const params = [];
+    const params = [mesReferencia, mesReferencia];
 
     if (search) {
       query += ` AND (s.nombre LIKE ? OR s.apellido LIKE ? OR s.dni LIKE ? OR s.numero_socio LIKE ?)`;
@@ -878,12 +889,12 @@ app.post('/api/socios/:id/cancelar-deuda', (req, res) => {
     const socio = db.prepare('SELECT * FROM socios WHERE id = ?').get(socioId);
     if (!socio) return res.status(404).json({ error: 'Socio no encontrado' });
 
-    // Buscar cuotas con saldo pendiente
+    // Buscar cuotas exigibles con saldo pendiente (mes actual o anteriores)
     const cuotasAdeudadas = db.prepare(`
       SELECT c.*,
         (c.monto_total - COALESCE((SELECT SUM(monto_pagado) FROM pagos WHERE cuota_id = c.id), 0)) as saldo_pendiente
       FROM cuotas c
-      WHERE c.socio_id = ? AND c.estado IN ('Pendiente', 'Vencida', 'Parcial')
+      WHERE c.socio_id = ? AND c.estado IN ('Pendiente', 'Vencida', 'Parcial') AND c.periodo <= '2026-10'
       ORDER BY c.periodo ASC
     `).all(socioId).filter(c => c.saldo_pendiente > 0);
 
@@ -965,13 +976,13 @@ app.get('/api/socios/:id/carnet', (req, res) => {
 
     if (!socio) return res.status(404).json({ error: 'Socio no encontrado' });
 
-    // Cuotas pendientes, vencidas o con saldo parcial
+    // Cuotas pendientes o con saldo parcial del mes actual o anteriores (vencidas)
     const deuda = db.prepare(`
       SELECT 
         COUNT(CASE WHEN (c.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = c.id), 0)) > 0 THEN 1 END) as cuotas_adeudadas,
         COALESCE(SUM(c.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = c.id), 0)), 0) as total_deuda
       FROM cuotas c
-      WHERE c.socio_id = ? AND c.estado IN ('Pendiente', 'Vencida', 'Parcial')
+      WHERE c.socio_id = ? AND c.estado IN ('Pendiente', 'Vencida', 'Parcial') AND c.periodo <= '2026-10'
     `).get(req.params.id);
 
     const alDia = deuda.cuotas_adeudadas === 0 && socio.estado === 'Activo';
@@ -1036,7 +1047,7 @@ app.get('/api/socio/perfil', (req, res) => {
         COUNT(CASE WHEN (c.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = c.id), 0)) > 0 THEN 1 END) as cuotas_adeudadas,
         COALESCE(SUM(c.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = c.id), 0)), 0) as total_deuda
       FROM cuotas c
-      WHERE c.socio_id = ? AND c.estado IN ('Pendiente', 'Vencida', 'Parcial')
+      WHERE c.socio_id = ? AND c.estado IN ('Pendiente', 'Vencida', 'Parcial') AND c.periodo <= '2026-10'
     `).get(socio.id);
 
     const alDia = deuda.cuotas_adeudadas === 0 && socio.estado === 'Activo';
