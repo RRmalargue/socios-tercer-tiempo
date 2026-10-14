@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Portal del Socio - Club Tercer Tiempo</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
@@ -28,9 +31,14 @@
           <p class="text-[11px] text-emerald-400 font-medium">Portal de Autogestión del Socio</p>
         </div>
       </div>
-      <a href="/asociarme.html" class="text-xs bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 px-3 py-1.5 rounded-lg font-bold transition border border-emerald-500/30">
-        Inscribirse
-      </a>
+      <div class="flex items-center gap-1.5">
+        <button onclick="forzarActualizar()" title="Recargar última versión sin memoria caché" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-emerald-400 px-2.5 py-1.5 rounded-xl font-bold transition border border-emerald-500/40 flex items-center gap-1 shadow">
+          <span>🔄</span> <span class="text-[10px] sm:text-xs">Actualizar</span>
+        </button>
+        <a href="/asociarme.html" class="text-xs bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 px-2.5 py-1.5 rounded-xl font-bold transition border border-emerald-500/30">
+          Inscribirse
+        </a>
+      </div>
     </div>
   </header>
 
@@ -123,11 +131,11 @@
           <div class="flex justify-between items-center">
             <span class="text-slate-500 font-semibold">CBU:</span>
             <div class="flex items-center gap-1.5">
-              <span id="bankCbu" class="font-mono font-bold text-slate-900 text-[10px] bg-white px-1.5 py-0.5 rounded border">0070123420000012345678</span>
+              <span id="bankCbu" class="font-mono font-bold text-slate-900 text-[10px] bg-white px-1.5 py-0.5 rounded border">0110348740034817394276</span>
               <button onclick="copiarTexto('bankCbu')" class="text-emerald-700 hover:text-emerald-900 font-bold text-[11px]">Copiar</button>
             </div>
           </div>
-          <p id="bankTitularDetalle" class="text-[10px] text-slate-400 text-center pt-1 border-t">Titular: Asociación Club Tercer Tiempo Malargüe • CUIT: 30-71234567-9</p>
+          <p id="bankTitularDetalle" class="text-[10px] text-slate-400 text-center pt-1 border-t">Titular: Asociación Club Tercer Tiempo Malargüe • BANCO NACION (Cta Cte)</p>
         </div>
       </div>
 
@@ -232,7 +240,39 @@
 
     const formatCurrency = (m) => new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(m || 0);
 
+    function forzarActualizar() {
+      if ('caches' in window) {
+        caches.keys().then(names => names.forEach(name => caches.delete(name))).catch(() => {});
+      }
+      const url = new URL(window.location.href);
+      url.searchParams.set('_nocache', Date.now());
+      window.location.replace(url.toString());
+    }
+
+    // Auto-detección de cambios al volver a la pestaña en el celular
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        fetch('/api/app-version?_=' + Date.now())
+          .then(r => r.json())
+          .then(data => {
+            const currentVer = sessionStorage.getItem('club_app_version');
+            if (currentVer && currentVer !== data.version) {
+              sessionStorage.setItem('club_app_version', data.version);
+              forzarActualizar();
+            } else if (!currentVer) {
+              sessionStorage.setItem('club_app_version', data.version);
+            }
+          })
+          .catch(() => {});
+      }
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
+      fetch('/api/app-version?_=' + Date.now())
+        .then(r => r.json())
+        .then(d => { sessionStorage.setItem('club_app_version', d.version); })
+        .catch(() => {});
+
       fetch('/api/config/bancarios?_=' + Date.now())
         .then(r => r.json())
         .then(b => {

@@ -9,7 +9,31 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// Middleware Anti-Caché estricto para dispositivos móviles y navegadores
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+  next();
+});
+
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  lastModified: false,
+  maxAge: 0,
+  setHeaders: (res, path) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+}));
+
+const APP_VERSION = '2.5.0-' + Date.now();
+app.get('/api/app-version', (req, res) => {
+  res.json({ version: APP_VERSION, timestamp: new Date().toISOString() });
+});
 
 // -------------------------------------------------------------
 // SISTEMA DE AUDITORÍA Y DESHACER ACCIONES
@@ -404,19 +428,19 @@ function getDatosBancarios() {
     const config = {};
     rows.forEach(r => { config[r.clave] = r.valor; });
     return {
-      banco: config.banco || 'Banco Galicia',
+      banco: config.banco || 'BANCO NACION',
       titular: config.titular || 'Asociación Club Tercer Tiempo Malargüe',
-      cuit: config.cuit || '30-71234567-9',
-      cbu: config.cbu || '0070123420000012345678',
+      cuit: config.cuit || '',
+      cbu: config.cbu || '0110348740034817394276',
       alias: config.alias || 'ACTTM2026',
       tipo_cuenta: config.tipo_cuenta || 'Cuenta Corriente Especial'
     };
   } catch (e) {
     return {
-      banco: 'Banco Galicia',
+      banco: 'BANCO NACION',
       titular: 'Asociación Club Tercer Tiempo Malargüe',
-      cuit: '30-71234567-9',
-      cbu: '0070123420000012345678',
+      cuit: '',
+      cbu: '0110348740034817394276',
       alias: 'ACTTM2026',
       tipo_cuenta: 'Cuenta Corriente Especial'
     };
