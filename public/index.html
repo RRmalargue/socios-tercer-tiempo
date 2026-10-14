@@ -56,71 +56,74 @@
   <!-- Header / Navbar con Colores Alegóricos al Club (Verde Esmeralda Deportivo, Verde Bosque & Negro Grafito) -->
   <header class="bg-gradient-to-r from-zinc-950 via-[#0a1811] to-zinc-950 text-white shadow-2xl sticky top-0 z-30 border-b-2 border-emerald-500 shadow-[0_4px_30px_rgba(16,185,129,0.25)]">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between h-16 sm:h-20 gap-2">
+      
+      <!-- Fila 1: Identidad Institucional + Accesos y Botones de Acción -->
+      <div class="flex items-center justify-between py-2 sm:py-2.5 border-b border-emerald-500/20 gap-3">
         <!-- Logo y Marca Club Tercer Tiempo Malargüe -->
-        <div class="flex items-center space-x-3 min-w-max">
+        <div class="flex items-center space-x-2.5 sm:space-x-3">
           <div class="relative group">
             <div class="absolute -inset-1 bg-gradient-to-r from-emerald-500 to-emerald-400 rounded-2xl blur-sm opacity-60 group-hover:opacity-100 transition duration-300"></div>
-            <img src="/logo.jpg" alt="Escudo Club Tercer Tiempo" class="relative w-11 h-11 sm:w-13 sm:h-13 rounded-2xl object-contain bg-zinc-950 p-0.5 ring-2 ring-emerald-400 shadow-xl">
+            <img src="/logo.jpg" alt="Escudo Club Tercer Tiempo" class="relative w-9 h-9 sm:w-11 sm:h-11 rounded-2xl object-contain bg-zinc-950 p-0.5 ring-2 ring-emerald-400 shadow-xl">
           </div>
           <div>
-            <div class="flex items-center gap-2">
-              <h1 class="font-black text-base sm:text-xl tracking-tight bg-gradient-to-r from-white via-emerald-100 to-emerald-300 bg-clip-text text-transparent">
+            <div class="flex items-center gap-1.5 sm:gap-2">
+              <h1 class="font-black text-sm sm:text-lg tracking-tight bg-gradient-to-r from-white via-emerald-100 to-emerald-300 bg-clip-text text-transparent">
                 Club Tercer Tiempo
               </h1>
-              <span class="bg-gradient-to-r from-emerald-400 to-emerald-500 text-zinc-950 font-black text-[10px] tracking-wider uppercase px-2 py-0.5 rounded-full shadow-md font-mono">
+              <span class="bg-gradient-to-r from-emerald-400 to-emerald-500 text-zinc-950 font-black text-[9px] tracking-wider uppercase px-2 py-0.5 rounded-full shadow-md font-mono">
                 MALARGÜE
               </span>
             </div>
-            <p class="text-xs text-emerald-400 font-semibold tracking-wide flex items-center gap-1.5 mt-0.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"></span>
-              Sede Oficial &bull; Temporada 2026
+            <p class="text-[10px] sm:text-xs text-emerald-400 font-semibold tracking-wide flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)] animate-pulse"></span>
+              Secretaría & Tesorería &bull; Temporada 2026
             </p>
           </div>
         </div>
 
-        <!-- Menú de Navegación con Colores Alegóricos del Club -->
-        <nav class="flex items-center space-x-1 sm:space-x-1.5 overflow-x-auto py-1">
-          <button onclick="setTab('dashboard')" id="tabBtn-dashboard" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-500 text-zinc-950 font-black shadow-[0_2px_15px_rgba(16,185,129,0.5)] border border-emerald-300 flex items-center gap-1.5 cursor-pointer">
-            <span>📊</span> Dashboard
-          </button>
-          <button onclick="setTab('socios')" id="tabBtn-socios" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
-            <span>👥</span> Socios
-          </button>
-          <button onclick="setTab('cuotas')" id="tabBtn-cuotas" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
-            <span>📅</span> Cuotas
-          </button>
-          <button onclick="setTab('pagos')" id="tabBtn-pagos" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
-            <span>💳</span> Caja
-          </button>
-          <button onclick="setTab('tesoreria')" id="tabBtn-tesoreria" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
-            <span>📥</span> Conciliar
-            <span id="badgeComprobantesPendientes" class="hidden bg-rose-500 text-white text-[11px] font-black px-2 py-0.5 rounded-full shadow">0</span>
-          </button>
-          <button onclick="setTab('config')" id="tabBtn-config" class="nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
-            <span>⚙️</span> Aranceles
-          </button>
-
-          <!-- Acciones Rápidas -->
-          <div class="h-6 w-px bg-emerald-800/60 mx-1 hidden lg:block"></div>
-
-          <a href="/socio.html" target="_blank" class="hidden lg:flex bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 font-bold px-2.5 py-1.5 rounded-xl text-xs shadow items-center gap-1.5 transition">
-            <span>📱</span> Portal Socio ↗
+        <!-- Botones de Acción y Utilidades -->
+        <div class="flex items-center gap-1.5 sm:gap-2">
+          <a href="/socio.html" target="_blank" class="bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 font-bold px-2 sm:px-2.5 py-1 rounded-xl text-[11px] sm:text-xs shadow flex items-center gap-1 transition" title="Abrir portal de autogestión de socios">
+            <span>📱</span> <span class="hidden md:inline">Portal</span> Socio ↗
           </a>
-          <a href="/asociarme.html" target="_blank" class="hidden lg:flex bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 font-bold px-2.5 py-1.5 rounded-xl text-xs shadow items-center gap-1.5 transition">
+          <a href="/asociarme.html" target="_blank" class="hidden sm:flex bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 hover:text-emerald-200 border border-emerald-500/40 font-bold px-2 sm:px-2.5 py-1 rounded-xl text-[11px] sm:text-xs shadow items-center gap-1 transition" title="Formulario online para asociarse">
             <span>📝</span> Afiliación ↗
           </a>
-          <button onclick="descargarBackup()" title="Descargar Copia de Seguridad completa (.db)" class="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-zinc-950 font-black px-2.5 py-1.5 rounded-xl text-xs shadow-[0_0_15px_rgba(16,185,129,0.35)] flex items-center gap-1 transition ml-1 cursor-pointer">
-            <span>💾</span> Respaldar
+          <button onclick="descargarBackup()" title="Descargar Copia de Seguridad completa (.db)" class="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-zinc-950 font-black px-2.5 py-1 rounded-xl text-[11px] sm:text-xs shadow-[0_0_12px_rgba(16,185,129,0.35)] flex items-center gap-1 transition cursor-pointer">
+            <span>💾</span> <span class="hidden sm:inline">Respaldar</span>
           </button>
-          <button onclick="abrirModalDeshacer()" title="Historial y Deshacer Acciones" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold px-2 py-1.5 rounded-xl text-xs flex items-center gap-1 transition ml-1 cursor-pointer">
-            <span>↶</span> Deshacer
+          <button onclick="abrirModalDeshacer()" title="Historial y Deshacer Acciones" class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 font-bold px-2.5 py-1 rounded-xl text-[11px] sm:text-xs flex items-center gap-1 transition cursor-pointer">
+            <span>↶</span> <span class="hidden sm:inline">Deshacer</span>
           </button>
-          <button onclick="cerrarSesionAdmin()" title="Cerrar sesión de secretaría" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold px-2 py-1.5 rounded-xl text-xs flex items-center gap-1 transition ml-1 cursor-pointer">
+          <button onclick="cerrarSesionAdmin()" title="Cerrar sesión de secretaría" class="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 font-bold px-2.5 py-1 rounded-xl text-[11px] sm:text-xs flex items-center gap-1 transition cursor-pointer">
             <span>🔒</span> Salir
           </button>
-        </nav>
+        </div>
       </div>
+
+      <!-- Fila 2: Pestañas de Navegación del Panel (Sin barra de desplazamiento horizontal) -->
+      <nav class="flex items-center justify-start sm:justify-center gap-1 sm:gap-2 py-1.5 overflow-x-hidden">
+        <button onclick="setTab('dashboard')" id="tabBtn-dashboard" class="nav-tab px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-500 text-zinc-950 font-black shadow-[0_2px_15px_rgba(16,185,129,0.5)] border border-emerald-300 flex items-center gap-1.5 cursor-pointer">
+          <span>📊</span> Dashboard
+        </button>
+        <button onclick="setTab('socios')" id="tabBtn-socios" class="nav-tab px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
+          <span>👥</span> Socios
+        </button>
+        <button onclick="setTab('cuotas')" id="tabBtn-cuotas" class="nav-tab px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
+          <span>📅</span> Cuotas
+        </button>
+        <button onclick="setTab('pagos')" id="tabBtn-pagos" class="nav-tab px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
+          <span>💳</span> Caja
+        </button>
+        <button onclick="setTab('tesoreria')" id="tabBtn-tesoreria" class="nav-tab px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
+          <span>📥</span> Conciliar
+          <span id="badgeComprobantesPendientes" class="hidden bg-rose-500 text-white text-[10px] font-black px-1.5 py-0.2 rounded-full shadow">0</span>
+        </button>
+        <button onclick="setTab('config')" id="tabBtn-config" class="nav-tab px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer">
+          <span>⚙️</span> Aranceles
+        </button>
+      </nav>
+
     </div>
   </header>
 
@@ -227,9 +230,14 @@
               <div class="bg-rose-500 h-1.5 rounded-full" style="width: 59%"></div>
             </div>
           </div>
-          <button onclick="setTab('cuotas')" class="text-[11px] font-bold text-rose-700 hover:text-rose-800 pt-2 border-t border-slate-100 flex items-center justify-between">
-            <span>Ver cuotas impagas</span> ➔
-          </button>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
+            <button onclick="setTab('cuotas')" class="text-[11px] font-bold text-rose-700 hover:text-rose-900 transition">
+              Ver cuotas ➔
+            </button>
+            <button onclick="abrirModalRecordatoriosMasivos()" title="Centro de recordatorios por WhatsApp" class="text-[11px] font-bold text-emerald-700 hover:text-emerald-800 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded-lg border border-emerald-200 transition flex items-center gap-1 cursor-pointer">
+              <span>📢</span> WhatsApp
+            </button>
+          </div>
         </div>
 
         <!-- 4. Recaudación Anual Temporada 2026 -->
@@ -330,9 +338,14 @@
           <h2 class="text-xl font-bold text-slate-900">Padrón de Socios</h2>
           <p class="text-sm text-slate-500">Administración de miembros, categorías y disciplinas</p>
         </div>
-        <button onclick="openNuevoSocioModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl shadow transition flex items-center gap-2">
-          <span>➕</span> Nuevo Socio
-        </button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button onclick="abrirModalRecordatoriosMasivos()" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-xs px-3.5 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer" title="Centro de recordatorios de cobro por WhatsApp">
+            <span>📢</span> Recordatorios WhatsApp
+          </button>
+          <button onclick="openNuevoSocioModal()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3.5 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 cursor-pointer">
+            <span>➕</span> Nuevo Socio
+          </button>
+        </div>
       </div>
 
       <!-- Filtros -->
@@ -420,16 +433,16 @@
       <!-- Tabla Socios -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
-            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-xs border-b border-slate-200">
+          <table class="w-full text-left text-xs sm:text-sm">
+            <thead class="bg-slate-50 text-slate-500 font-semibold uppercase text-[11px] border-b border-slate-200">
               <tr>
-                <th class="py-3 px-4">N° Socio</th>
-                <th class="py-3 px-4">Nombre y Apellido</th>
-                <th class="py-3 px-4">DNI</th>
-                <th class="py-3 px-4">Categoría</th>
-                <th class="py-3 px-4">Disciplinas</th>
-                <th class="py-3 px-4">Estado Cuotas</th>
-                <th class="py-3 px-4 text-right">Acciones</th>
+                <th class="py-2.5 px-3">N° Socio</th>
+                <th class="py-2.5 px-3">Nombre y Apellido</th>
+                <th class="py-2.5 px-3">DNI</th>
+                <th class="py-2.5 px-3">Categoría</th>
+                <th class="py-2.5 px-3">Disciplinas</th>
+                <th class="py-2.5 px-3 text-center">Estado Cuotas</th>
+                <th class="py-2.5 px-3 text-right sticky right-0 bg-slate-50 shadow-[-4px_0_8px_rgba(0,0,0,0.04)] border-l border-slate-200">Acciones</th>
               </tr>
             </thead>
             <tbody id="sociosTableBody" class="divide-y divide-slate-100">
@@ -693,6 +706,52 @@
             <span>Cualquier cambio que guardes se actualiza al instante en el celular de los socios en <strong>Portal Socio (/socio.html)</strong>.</span>
           </div>
           <a href="/socio.html" target="_blank" class="font-bold text-emerald-700 hover:text-emerald-900 underline whitespace-nowrap ml-2">Abrir Portal Socio ↗</a>
+        </div>
+      <!-- Tarjeta: Plantilla de Mensaje para Recordatorios de WhatsApp -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b pb-3">
+          <div>
+            <h3 class="font-bold text-base text-slate-900 flex items-center gap-2 text-emerald-800">
+              <span>💬</span> Plantilla de Mensaje de Recordatorios de Cuotas (WhatsApp)
+            </h3>
+            <p class="text-xs text-slate-500">Personalizá el saludo, la redacción y la información que reciben los socios al enviarles el recordatorio por WhatsApp</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" onclick="restaurarPlantillaPredeterminada()" class="text-xs font-bold text-slate-500 hover:text-slate-800 underline px-2 py-1">
+              ↺ Restaurar
+            </button>
+            <button type="button" onclick="guardarPlantillaMensaje()" class="bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 text-zinc-950 font-black text-xs px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition flex items-center gap-1.5 cursor-pointer">
+              <span>💾</span> Guardar Texto
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-3">
+          <div>
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Insertar datos automáticos en el texto:</span>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" onclick="insertarVariablePlantilla('{nombre}')" class="px-2.5 py-1 bg-slate-50 hover:bg-emerald-100 text-emerald-800 border border-slate-200 rounded-lg text-xs font-mono cursor-pointer transition">+ {nombre}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{deuda_total}')" class="px-2.5 py-1 bg-slate-50 hover:bg-emerald-100 text-emerald-800 border border-slate-200 rounded-lg text-xs font-mono cursor-pointer transition">+ {deuda_total}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{cuotas_pendientes}')" class="px-2.5 py-1 bg-slate-50 hover:bg-emerald-100 text-emerald-800 border border-slate-200 rounded-lg text-xs font-mono cursor-pointer transition">+ {cuotas_pendientes}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{detalle_cuotas}')" class="px-2.5 py-1 bg-slate-50 hover:bg-emerald-100 text-emerald-800 border border-slate-200 rounded-lg text-xs font-mono cursor-pointer transition">+ {detalle_cuotas}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{alias}')" class="px-2.5 py-1 bg-slate-50 hover:bg-emerald-100 text-emerald-800 border border-slate-200 rounded-lg text-xs font-mono cursor-pointer transition">+ {alias}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{cbu}')" class="px-2.5 py-1 bg-slate-50 hover:bg-emerald-100 text-emerald-800 border border-slate-200 rounded-lg text-xs font-mono cursor-pointer transition">+ {cbu}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{banco}')" class="px-2.5 py-1 bg-slate-50 hover:bg-emerald-100 text-emerald-800 border border-slate-200 rounded-lg text-xs font-mono cursor-pointer transition">+ {banco}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{titular}')" class="px-2.5 py-1 bg-slate-50 hover:bg-emerald-100 text-emerald-800 border border-slate-200 rounded-lg text-xs font-mono cursor-pointer transition">+ {titular}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{portal_url}')" class="px-2.5 py-1 bg-slate-50 hover:bg-emerald-100 text-emerald-800 border border-slate-200 rounded-lg text-xs font-mono cursor-pointer transition">+ {portal_url}</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Cuerpo del Mensaje (Podés editarlo a gusto):</label>
+              <textarea id="configTxtPlantillaMensaje" rows="9" oninput="sincronizarPlantillas('config')" class="w-full p-3 bg-white border border-slate-300 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner leading-relaxed"></textarea>
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-700 mb-1">Vista Previa con Datos Reales del Club:</label>
+              <div id="configPreviewMensajeEnVivo" class="text-xs text-slate-700 whitespace-pre-wrap font-sans bg-slate-50 p-3 rounded-xl border border-slate-200 leading-relaxed max-h-56 overflow-y-auto"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1456,11 +1515,117 @@
         </details>
       </div>
 
-      <div class="flex justify-between items-center pt-3 border-t">
-        <button onclick="closeModal('modalCuentaSocio'); verCarnet(socioActualCuentaId)" class="px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition">
-          🪪 Ver Carnet QR
-        </button>
+      <div class="flex flex-wrap justify-between items-center gap-2 pt-3 border-t">
+        <div class="flex items-center gap-1.5">
+          <button onclick="closeModal('modalCuentaSocio'); verCarnet(socioActualCuentaId)" class="px-3 py-1.5 rounded-xl text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition">
+            🪪 Ver Carnet QR
+          </button>
+          <button id="btnCuentaEnviarWhatsApp" onclick="enviarRecordatorioWhatsApp(socioActualCuentaId)" class="px-3 py-1.5 rounded-xl text-xs font-bold text-emerald-800 bg-emerald-100 hover:bg-emerald-200 border border-emerald-300 transition flex items-center gap-1 shadow-sm cursor-pointer" title="Enviar recordatorio de pago a su WhatsApp">
+            💬 WhatsApp
+          </button>
+        </div>
         <button onclick="closeModal('modalCuentaSocio')" class="px-5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Centro de Recordatorios de Cobranzas por WhatsApp -->
+  <div id="modalRecordatoriosMasivos" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-4 my-8">
+      <div class="flex justify-between items-center border-b pb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 font-black flex items-center justify-center text-xl shadow-inner">
+            📢
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-slate-900">Centro de Recordatorios por WhatsApp</h3>
+            <p class="text-xs text-slate-500">Notificá a los socios con cuotas pendientes con mensaje y datos bancarios listos</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modalRecordatoriosMasivos')" class="text-slate-400 hover:text-slate-600 text-2xl font-bold">&times;</button>
+      </div>
+
+      <!-- Resumen y Filtro de Grupo -->
+      <div class="flex flex-wrap items-center justify-between gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold text-slate-700">Filtrar por grupo:</span>
+          <select id="filtroRecordatorioGrupo" onchange="filtrarSociosRecordatorio()" class="px-3 py-1.5 border border-slate-300 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white cursor-pointer">
+            <option value="TODOS">Todos los socios con deuda</option>
+            <option value="FUND">🏛️ Fundadores</option>
+            <option value="FUT">⚽ Fútbol +35</option>
+            <option value="ATL">🏃 Atletismo</option>
+            <option value="HB">🤾 Handball</option>
+            <option value="VOL">🏐 Voley</option>
+            <option value="GEN">👥 Generales</option>
+          </select>
+        </div>
+        <div class="text-right">
+          <span id="cantMorososRecordatorio" class="text-xs font-bold text-slate-600">0 socios pendientes</span>
+          <span id="totalMontoRecordatorio" class="text-sm font-black text-rose-600 block">$0</span>
+        </div>
+      </div>
+
+      <!-- Personalizar y Editar Plantilla de Mensaje WhatsApp -->
+      <details id="detailsEditorPlantilla" class="text-xs bg-emerald-50/60 border border-emerald-200 rounded-2xl p-3.5 text-slate-700">
+        <summary class="font-bold text-emerald-950 cursor-pointer flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <span>✏️</span> <strong>Personalizar Texto del Mensaje WhatsApp</strong>
+          </span>
+          <span class="text-[11px] bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-2 py-0.5 rounded-lg border border-emerald-300 transition">Modificar plantilla ❯</span>
+        </summary>
+        <div class="mt-3 space-y-2.5">
+          <div>
+            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Insertar variables automáticas con 1 clic:</span>
+            <div class="flex flex-wrap gap-1">
+              <button type="button" onclick="insertarVariablePlantilla('{nombre}')" class="px-2 py-0.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-mono cursor-pointer transition">+ {nombre}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{deuda_total}')" class="px-2 py-0.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-mono cursor-pointer transition">+ {deuda_total}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{cuotas_pendientes}')" class="px-2 py-0.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-mono cursor-pointer transition">+ {cuotas_pendientes}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{detalle_cuotas}')" class="px-2 py-0.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-mono cursor-pointer transition">+ {detalle_cuotas}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{alias}')" class="px-2 py-0.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-mono cursor-pointer transition">+ {alias}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{cbu}')" class="px-2 py-0.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-mono cursor-pointer transition">+ {cbu}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{banco}')" class="px-2 py-0.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-mono cursor-pointer transition">+ {banco}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{titular}')" class="px-2 py-0.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-mono cursor-pointer transition">+ {titular}</button>
+              <button type="button" onclick="insertarVariablePlantilla('{portal_url}')" class="px-2 py-0.5 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded text-[11px] font-mono cursor-pointer transition">+ {portal_url}</button>
+            </div>
+          </div>
+
+          <textarea id="txtPlantillaMensaje" rows="7" oninput="actualizarPrevisualizacionEnVivoPlantilla()" class="w-full p-2.5 bg-white border border-slate-300 rounded-xl text-xs font-mono text-slate-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner leading-relaxed" placeholder="Escribí aquí el texto del mensaje..."></textarea>
+
+          <div class="flex flex-wrap justify-between items-center gap-2 pt-1">
+            <button type="button" onclick="restaurarPlantillaPredeterminada()" class="text-[11px] font-bold text-slate-500 hover:text-slate-800 underline">
+              ↺ Restaurar Plantilla Original
+            </button>
+            <button type="button" onclick="guardarPlantillaMensaje()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-xl shadow transition flex items-center gap-1 cursor-pointer">
+              <span>💾</span> Guardar Texto del Mensaje
+            </button>
+          </div>
+
+          <div class="mt-2 bg-white p-3 rounded-xl border border-emerald-200">
+            <div class="flex justify-between items-center mb-1">
+              <span class="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider">👀 Vista Previa en Vivo (con datos bancarios reales):</span>
+              <span class="text-[10px] text-slate-400">Ejemplo con socio ficticio</span>
+            </div>
+            <div id="previewMensajeEnVivo" class="text-[11px] text-slate-700 whitespace-pre-wrap font-sans bg-slate-50 p-2.5 rounded-lg border border-slate-200 leading-relaxed max-h-44 overflow-y-auto"></div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Lista de Socios con Deuda y botón Enviar 1 a 1 -->
+      <div class="space-y-2">
+        <div class="flex justify-between items-center text-xs font-bold text-slate-500 uppercase px-1">
+          <span>Socio / Contacto</span>
+          <span>Deuda / Acción</span>
+        </div>
+        <div id="listaSociosRecordatorio" class="space-y-2 max-h-80 overflow-y-auto pr-1">
+          <div class="text-center py-8 text-slate-400 text-xs">Cargando socios morosos...</div>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center pt-3 border-t">
+        <span class="text-[11px] text-slate-400">💡 Al presionar "Enviar", se abre WhatsApp con el mensaje ya redactado para ese socio.</span>
+        <button onclick="closeModal('modalRecordatoriosMasivos')" class="px-5 py-2 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700">
           Cerrar
         </button>
       </div>

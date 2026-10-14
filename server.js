@@ -424,6 +424,7 @@ function getDatosBancarios() {
 }
 
 app.get('/api/config/bancarios', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.json(getDatosBancarios());
 });
 
@@ -455,6 +456,61 @@ app.put('/api/config/bancarios', (req, res) => {
     );
 
     res.json({ message: 'Datos bancarios actualizados correctamente', datos: getDatosBancarios() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// -------------------------------------------------------------
+// PLANTILLA DE MENSAJE PERSONALIZADA PARA WHATSAPP
+// -------------------------------------------------------------
+const PLANTILLA_WHATSAPP_DEFAULT = 
+`Hola *{nombre}* 👋 Te saludamos desde la administración del *Club Deportivo Tercer Tiempo Malargüe* 🦊⚽
+
+Te escribimos para recordarte que registrás *{cuotas_pendientes} cuota(s) pendiente(s)* por un total de *{deuda_total}*:
+{detalle_cuotas}
+
+🏦 *Datos para transferir:*
+• *Alias:* {alias}
+• *CBU:* {cbu}
+• *Banco:* {banco}
+• *Titular:* {titular}
+
+📱 *Portal del Socio:*
+Podés consultar tu estado de cuenta, descargar tu carnet oficial o subir tu comprobante de pago ingresando a:
+{portal_url}
+
+Si ya realizaste la transferencia o tenés alguna duda, respondé a este mensaje. ¡Muchas gracias por apoyar al club! 🏆`;
+
+app.get('/api/config/plantilla-whatsapp', (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    const row = db.prepare("SELECT valor FROM configuracion_club WHERE clave = 'plantilla_whatsapp'").get();
+    res.json({
+      plantilla: row && row.valor ? row.valor : PLANTILLA_WHATSAPP_DEFAULT,
+      plantilla_default: PLANTILLA_WHATSAPP_DEFAULT
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/config/plantilla-whatsapp', (req, res) => {
+  try {
+    const { plantilla } = req.body;
+    if (!plantilla || !plantilla.trim()) {
+      return res.status(400).json({ error: 'El texto del mensaje no puede estar vacío.' });
+    }
+    db.prepare(`
+      INSERT INTO configuracion_club (clave, valor) VALUES ('plantilla_whatsapp', ?)
+      ON CONFLICT(clave) DO UPDATE SET valor = excluded.valor
+    `).run(plantilla.trim());
+
+    res.json({ 
+      message: 'Plantilla de mensaje guardada exitosamente.', 
+      plantilla: plantilla.trim(),
+      plantilla_default: PLANTILLA_WHATSAPP_DEFAULT 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

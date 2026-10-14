@@ -116,14 +116,14 @@ function setTab(tab) {
   state.currentTab = tab;
   document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.nav-tab').forEach(el => {
-    el.className = 'nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer';
+    el.className = 'nav-tab px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all text-emerald-100/90 hover:text-white bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-500/20 hover:border-emerald-500/50 flex items-center gap-1.5 cursor-pointer';
   });
 
   const activeView = document.getElementById(`view-${tab}`);
   const activeBtn = document.getElementById(`tabBtn-${tab}`);
   if (activeView) activeView.classList.remove('hidden');
   if (activeBtn) {
-    activeBtn.className = 'nav-tab px-3 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-500 text-zinc-950 font-black shadow-[0_2px_15px_rgba(16,185,129,0.5)] border border-emerald-300 flex items-center gap-1.5 cursor-pointer scale-[1.02]';
+    activeBtn.className = 'nav-tab px-3 sm:px-4 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-emerald-500 text-zinc-950 font-black shadow-[0_2px_15px_rgba(16,185,129,0.5)] border border-emerald-300 flex items-center gap-1.5 cursor-pointer scale-[1.02]';
   }
 
   if (tab === 'dashboard') loadDashboard();
@@ -749,41 +749,52 @@ async function loadSocios() {
            </span>`;
 
       const tr = document.createElement('tr');
-      tr.className = 'hover:bg-indigo-50/50 cursor-pointer transition';
+      tr.className = 'group hover:bg-emerald-50/40 cursor-pointer transition';
       tr.title = 'Hacé clic en este socio para ver sus cuotas y cobrar';
       tr.onclick = (e) => {
         if (e.target.closest('button')) return;
         abrirCuentaSocio(s.id);
       };
       tr.innerHTML = `
-        <td class="py-3 px-4 font-mono font-bold text-xs text-indigo-900">${s.numero_socio}</td>
-        <td class="py-3 px-4">
-          <div class="font-bold text-slate-900">${s.nombre} ${s.apellido}</div>
-          <div class="text-xs text-slate-400">${s.email || s.telefono || 'Sin contacto'}</div>
+        <td class="py-2.5 px-3 font-mono font-bold text-xs whitespace-nowrap">
+          <span class="bg-indigo-50 border border-indigo-200/80 text-indigo-900 px-1.5 py-0.5 rounded text-[11px]">${s.numero_socio}</span>
         </td>
-        <td class="py-3 px-4 text-xs font-mono text-slate-600">${s.dni}</td>
-        <td class="py-3 px-4"><span class="bg-indigo-50 text-indigo-700 text-xs font-semibold px-2 py-0.5 rounded-md">${s.categoria_nombre}</span></td>
-        <td class="py-3 px-4 text-xs text-slate-600 max-w-xs truncate">${s.disciplinas_str || '<span class="text-slate-400">Sin disciplinas</span>'}</td>
-        <td class="py-3 px-4">${estadoCuotaBadge}</td>
-        <td class="py-3 px-4 text-right space-x-1 whitespace-nowrap">
-          ${tieneDeuda 
-            ? `<button onclick="abrirCuentaSocio(${s.id})" title="Cobrar cuotas adeudadas en efectivo" class="bg-rose-600 hover:bg-rose-700 text-white px-2.5 py-1.5 rounded-lg text-xs font-bold transition inline-flex items-center gap-1 shadow">
-                💰 Cobrar
-               </button>` 
-            : ''
-          }
-          <button onclick="editarSocio(${s.id})" title="Editar todos los campos del socio" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
-            ✏️ Editar
-          </button>
-          <button onclick="verFichaMedica(${s.id})" title="Ver Ficha Completa de Afiliación" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
-            📋 Ficha
-          </button>
-          <button onclick="verCarnet(${s.id})" title="Ver Carnet y QR de Acceso" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1.5 rounded-lg text-xs font-bold transition">
-            🪪 Carnet QR
-          </button>
-          <button onclick="confirmarEliminarSocio(${s.id}, '${s.nombre} ${s.apellido}', '${s.numero_socio}', '${s.dni}')" title="Eliminar socio del club" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2 py-1.5 rounded-lg text-xs font-bold transition">
-            🗑️
-          </button>
+        <td class="py-2.5 px-3">
+          <div class="font-bold text-slate-900 leading-tight">${s.nombre} ${s.apellido}</div>
+          <div class="text-[11px] text-slate-400 truncate max-w-[190px]">${s.email || s.telefono || 'Sin contacto'}</div>
+        </td>
+        <td class="py-2.5 px-3 text-xs font-mono text-slate-600 whitespace-nowrap">${s.dni}</td>
+        <td class="py-2.5 px-3 whitespace-nowrap">
+          <span class="bg-slate-100 text-slate-700 text-[11px] font-semibold px-2 py-0.5 rounded">${s.categoria_nombre}</span>
+        </td>
+        <td class="py-2.5 px-3 text-xs text-slate-600 max-w-[140px] truncate" title="${s.disciplinas_str || ''}">
+          ${s.disciplinas_str || '<span class="text-slate-400">Sin disciplinas</span>'}
+        </td>
+        <td class="py-2.5 px-3 text-center whitespace-nowrap">${estadoCuotaBadge}</td>
+        <td class="py-2.5 px-3 text-right whitespace-nowrap sticky right-0 bg-white group-hover:bg-[#f2faf6] transition shadow-[-4px_0_8px_rgba(0,0,0,0.03)] border-l border-slate-100">
+          <div class="inline-flex items-center gap-1 justify-end">
+            ${tieneDeuda 
+              ? `<button onclick="abrirCuentaSocio(${s.id})" title="Cobrar cuotas adeudadas en efectivo" class="bg-rose-600 hover:bg-rose-700 text-white px-2 py-1 rounded-lg text-xs font-bold transition inline-flex items-center gap-1 shadow-sm cursor-pointer">
+                  💰 Cobrar
+                 </button>
+                 <button onclick="enviarRecordatorioWhatsApp(${s.id})" title="Enviar recordatorio de deuda por WhatsApp" class="p-1.5 bg-emerald-50 hover:bg-emerald-600 text-emerald-700 hover:text-white border border-emerald-300 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer">
+                  💬
+                 </button>` 
+              : ''
+            }
+            <button onclick="editarSocio(${s.id})" title="Editar todos los campos del socio" class="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 rounded-lg text-xs font-bold transition cursor-pointer">
+              ✏️
+            </button>
+            <button onclick="verFichaMedica(${s.id})" title="Ver Ficha Completa de Afiliación" class="p-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-lg text-xs font-bold transition cursor-pointer">
+              📋
+            </button>
+            <button onclick="verCarnet(${s.id})" title="Ver Carnet y QR de Acceso" class="p-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold transition cursor-pointer">
+              🪪
+            </button>
+            <button onclick="confirmarEliminarSocio(${s.id}, '${(s.nombre || '').replace(/'/g, "\\'")} ${(s.apellido || '').replace(/'/g, "\\'")}', '${s.numero_socio}', '${s.dni}')" title="Eliminar socio del club" class="p-1.5 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-300 rounded-lg text-xs font-bold transition shadow-sm cursor-pointer">
+              🗑️
+            </button>
+          </div>
         </td>
       `;
       tbody.appendChild(tr);
@@ -1351,7 +1362,7 @@ function verComprobanteGrande(imgUrl, titulo) {
 // 7. CONFIGURACIÓN: CUOTAS, DISCIPLINAS Y BANCO
 // ==========================================
 async function loadConfigTab() {
-  await Promise.all([loadConfigCategorias(), loadConfigDisciplinas(), loadConfigBancaria()]);
+  await Promise.all([loadConfigCategorias(), loadConfigDisciplinas(), loadConfigBancaria(), cargarPlantillaWhatsApp()]);
 }
 
 async function loadConfigBancaria() {
@@ -1399,8 +1410,14 @@ window.guardarDatosBancarios = async function() {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al guardar datos bancarios');
 
-    alert('✅ Datos bancarios guardados exitosamente.\nSe verán reflejados de inmediato en el Portal de Socios.');
-    loadConfigBancaria();
+    // Invalida cache de datos bancarios para que los mensajes de WhatsApp usen el nuevo CBU/Alias inmediatamente
+    datosBancariosCache = data.datos || null;
+
+    alert('✅ Datos bancarios guardados exitosamente.\nSe verán reflejados de inmediato en el Portal de Socios y en todos los recordatorios de WhatsApp.');
+    await loadConfigBancaria();
+    if (typeof actualizarPrevisualizacionEnVivoPlantilla === 'function') {
+      await actualizarPrevisualizacionEnVivoPlantilla();
+    }
   } catch (err) {
     alert('❌ ' + err.message);
   }
@@ -2254,4 +2271,374 @@ window.deshacerAccion = async function(id) {
   } catch (err) {
     alert(`❌ ${err.message}`);
   }
+};
+
+// ==========================================
+// 11. RECORDATORIOS DE COBRANZAS POR WHATSAPP & PLANTILLA PERSONALIZABLE
+// ==========================================
+let datosBancariosCache = null;
+let plantillaWhatsAppCache = null;
+
+async function obtenerDatosBancarios(forceRefresh = true) {
+  if (!forceRefresh && datosBancariosCache) return datosBancariosCache;
+  try {
+    const res = await fetch(`${API_BASE}/config/bancarios?_=${Date.now()}`);
+    if (res.ok) {
+      datosBancariosCache = await res.json();
+      return datosBancariosCache;
+    }
+  } catch (e) {
+    console.error('Error obteniendo datos bancarios:', e);
+  }
+  return datosBancariosCache || {
+    alias: 'ACTTM2026',
+    cbu: '0110348740034817394276',
+    banco: 'BANCO NACION',
+    titular: 'Asociación Club Tercer Tiempo Malargüe',
+    cuit: '0',
+    tipo_cuenta: 'Cuenta Corriente Especial'
+  };
+}
+
+async function cargarPlantillaWhatsApp() {
+  try {
+    const res = await fetch(`${API_BASE}/config/plantilla-whatsapp?_=${Date.now()}`);
+    if (res.ok) {
+      const data = await res.json();
+      plantillaWhatsAppCache = data.plantilla;
+      
+      const txtModal = document.getElementById('txtPlantillaMensaje');
+      if (txtModal) txtModal.value = data.plantilla;
+
+      const txtConfig = document.getElementById('configTxtPlantillaMensaje');
+      if (txtConfig) txtConfig.value = data.plantilla;
+
+      await actualizarPrevisualizacionEnVivoPlantilla();
+      return data.plantilla;
+    }
+  } catch (e) {
+    console.error('Error cargando plantilla de WhatsApp:', e);
+  }
+  return plantillaWhatsAppCache;
+}
+
+window.sincronizarPlantillas = function(fuente) {
+  const txtModal = document.getElementById('txtPlantillaMensaje');
+  const txtConfig = document.getElementById('configTxtPlantillaMensaje');
+
+  if (fuente === 'modal' && txtModal && txtConfig) {
+    txtConfig.value = txtModal.value;
+  } else if (fuente === 'config' && txtConfig && txtModal) {
+    txtModal.value = txtConfig.value;
+  }
+
+  const texto = (txtModal && txtModal.value) ? txtModal.value : (txtConfig ? txtConfig.value : '');
+  plantillaWhatsAppCache = texto;
+  actualizarPrevisualizacionEnVivoPlantilla();
+};
+
+window.actualizarPrevisualizacionEnVivoPlantilla = async function() {
+  const txtModal = document.getElementById('txtPlantillaMensaje');
+  const txtConfig = document.getElementById('configTxtPlantillaMensaje');
+  const textoBase = (txtModal && txtModal.value) ? txtModal.value : ((txtConfig && txtConfig.value) ? txtConfig.value : plantillaWhatsAppCache);
+
+  if (!textoBase) return;
+
+  const banco = await obtenerDatosBancarios(true);
+  const socioDemo = {
+    nombre: 'Lucas',
+    apellido: 'Araya',
+    numero_socio: 'ATL-001'
+  };
+  const cuotasDemo = [
+    { periodo: '2026-10', concepto: 'Cuota Social Atletismo', saldo_pendiente: 10000 }
+  ];
+
+  const mensajeRenderizado = formatearMensajeWhatsApp(textoBase, socioDemo, cuotasDemo, banco);
+
+  const prevModal = document.getElementById('previewMensajeEnVivo');
+  if (prevModal) prevModal.textContent = mensajeRenderizado;
+
+  const prevConfig = document.getElementById('configPreviewMensajeEnVivo');
+  if (prevConfig) prevConfig.textContent = mensajeRenderizado;
+};
+
+window.insertarVariablePlantilla = function(tag) {
+  let target = document.getElementById('txtPlantillaMensaje');
+  const targetConfig = document.getElementById('configTxtPlantillaMensaje');
+
+  // Si estamos en la pestaña configuración o el modal no está visible
+  const modal = document.getElementById('modalRecordatoriosMasivos');
+  if (modal && modal.classList.contains('hidden') && targetConfig) {
+    target = targetConfig;
+  }
+
+  if (!target) return;
+
+  const start = target.selectionStart || target.value.length;
+  const end = target.selectionEnd || target.value.length;
+  const val = target.value;
+  target.value = val.substring(0, start) + tag + val.substring(end);
+  target.focus();
+  target.selectionStart = target.selectionEnd = start + tag.length;
+
+  sincronizarPlantillas(target === targetConfig ? 'config' : 'modal');
+};
+
+window.guardarPlantillaMensaje = async function() {
+  const txtModal = document.getElementById('txtPlantillaMensaje');
+  const txtConfig = document.getElementById('configTxtPlantillaMensaje');
+  const plantilla = (txtModal && txtModal.value.trim()) ? txtModal.value.trim() : (txtConfig ? txtConfig.value.trim() : '');
+
+  if (!plantilla) {
+    alert('⚠️ La plantilla no puede estar vacía.');
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_BASE}/config/plantilla-whatsapp`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plantilla })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error al guardar plantilla');
+
+    plantillaWhatsAppCache = data.plantilla;
+    alert('✅ Plantilla de mensaje de WhatsApp guardada exitosamente.\nTodos los recordatorios futuros utilizarán este formato con los datos bancarios actualizados.');
+    await actualizarPrevisualizacionEnVivoPlantilla();
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+};
+
+window.restaurarPlantillaPredeterminada = async function() {
+  if (!confirm('¿Deseás restaurar la plantilla predeterminada original con los textos y variables del club?')) return;
+
+  try {
+    const res = await fetch(`${API_BASE}/config/plantilla-whatsapp?_=${Date.now()}`);
+    const data = await res.json();
+    if (data.plantilla_default) {
+      const resPut = await fetch(`${API_BASE}/config/plantilla-whatsapp`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plantilla: data.plantilla_default })
+      });
+      const dataPut = await resPut.json();
+      plantillaWhatsAppCache = dataPut.plantilla;
+
+      const txtModal = document.getElementById('txtPlantillaMensaje');
+      if (txtModal) txtModal.value = dataPut.plantilla;
+      const txtConfig = document.getElementById('configTxtPlantillaMensaje');
+      if (txtConfig) txtConfig.value = dataPut.plantilla;
+
+      alert('✅ Plantilla restaurada a los valores predeterminados.');
+      await actualizarPrevisualizacionEnVivoPlantilla();
+    }
+  } catch (err) {
+    alert('❌ ' + err.message);
+  }
+};
+
+function formatearMensajeWhatsApp(plantilla, socio, cuotasAdeudadas, banco) {
+  const totalDeuda = cuotasAdeudadas.reduce((acc, c) => 
+    acc + (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total), 0
+  );
+
+  let detalleLineas = '';
+  if (cuotasAdeudadas.length > 0) {
+    detalleLineas = cuotasAdeudadas.map(c => {
+      const saldo = c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total;
+      return `• *${c.periodo}* - ${c.concepto}: *${formatCurrency(saldo)}*`;
+    }).join('\n');
+  } else {
+    detalleLineas = '• Sin cuotas pendientes (Al día)';
+  }
+
+  const origin = window.location.origin || 'http://localhost:3000';
+  const portalUrl = `${origin}/socio.html`;
+
+  let resultado = plantilla || '';
+  resultado = resultado.replace(/\{nombre\}/gi, socio.nombre || 'Socio');
+  resultado = resultado.replace(/\{apellido\}/gi, socio.apellido || '');
+  resultado = resultado.replace(/\{numero_socio\}/gi, socio.numero_socio || 'S/N');
+  resultado = resultado.replace(/\{cuotas_pendientes\}/gi, String(cuotasAdeudadas.length));
+  resultado = resultado.replace(/\{deuda_total\}/gi, formatCurrency(totalDeuda));
+  resultado = resultado.replace(/\{detalle_cuotas\}/gi, detalleLineas);
+  resultado = resultado.replace(/\{alias\}/gi, banco.alias || 'ACTTM2026');
+  resultado = resultado.replace(/\{cbu\}/gi, banco.cbu || '0110348740034817394276');
+  resultado = resultado.replace(/\{banco\}/gi, banco.banco || 'BANCO NACION');
+  resultado = resultado.replace(/\{titular\}/gi, banco.titular || 'Asociación Club Tercer Tiempo Malargüe');
+  resultado = resultado.replace(/\{portal_url\}/gi, portalUrl);
+
+  return resultado;
+}
+
+function sanitizarTelefonoWhatsApp(telefono) {
+  if (!telefono) return '';
+  let digits = telefono.replace(/\D/g, '');
+  if (digits.startsWith('549')) {
+    return digits;
+  }
+  if (digits.startsWith('54')) {
+    return '549' + digits.substring(2);
+  }
+  if (digits.startsWith('0')) {
+    digits = digits.substring(1);
+  }
+  if (digits.startsWith('15')) {
+    digits = digits.substring(2);
+  }
+  if (digits.length === 10) { // ej. 2604708373
+    return '549' + digits;
+  }
+  return digits.length >= 8 ? '549' + digits : '';
+}
+
+window.enviarRecordatorioWhatsApp = async function(socioId) {
+  try {
+    const [resSocio, banco, plantilla] = await Promise.all([
+      fetch(`${API_BASE}/socios/${socioId}`),
+      obtenerDatosBancarios(true),
+      cargarPlantillaWhatsApp()
+    ]);
+
+    if (!resSocio.ok) throw new Error('No se pudo obtener la información del socio.');
+    const socio = await resSocio.json();
+
+    const telefonoRaw = socio.telefono || '';
+    const phone = sanitizarTelefonoWhatsApp(telefonoRaw);
+
+    if (!phone) {
+      alert(`⚠️ El socio ${socio.nombre} ${socio.apellido} no tiene un teléfono celular registrado.\nPodés cargarlo ingresando al botón "✏️ Editar Socio".`);
+      return;
+    }
+
+    const mesReferencia = '2026-10';
+    const cuotasAdeudadas = (socio.cuotas || []).filter(c => 
+      c.periodo <= mesReferencia && (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total) > 0
+    );
+
+    const totalDeuda = cuotasAdeudadas.reduce((acc, c) => 
+      acc + (c.saldo_pendiente !== undefined ? c.saldo_pendiente : c.monto_total), 0
+    );
+
+    let mensaje = '';
+    if (totalDeuda > 0) {
+      mensaje = formatearMensajeWhatsApp(plantilla, socio, cuotasAdeudadas, banco);
+    } else {
+      const origin = window.location.origin || 'http://localhost:3000';
+      const portalUrl = `${origin}/socio.html`;
+      mensaje = `Hola *${socio.nombre}* 👋 Te saludamos desde la administración del *Club Deportivo Tercer Tiempo Malargüe* 🦊⚽\n\n` +
+        `¡Queremos agradecerte por tener tus cuotas al día! 🎉\n\n` +
+        `📱 Recordá que podés acceder a tu carnet digital y ver tus recibos en nuestro portal:\n` +
+        `${portalUrl}\n\n` +
+        `¡Muchas gracias por formar parte del club! 🏆`;
+    }
+
+    const waUrl = `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(mensaje)}`;
+    window.open(waUrl, '_blank');
+  } catch (err) {
+    alert('❌ Error al preparar recordatorio: ' + err.message);
+  }
+};
+
+window.abrirModalRecordatoriosMasivos = async function() {
+  const modal = document.getElementById('modalRecordatoriosMasivos');
+  const lista = document.getElementById('listaSociosRecordatorio');
+  if (!modal || !lista) return;
+
+  modal.classList.remove('hidden');
+  lista.innerHTML = '<div class="text-center py-8 text-slate-400 text-xs">Cargando socios con cuotas pendientes...</div>';
+
+  try {
+    const [banco, resSocios] = await Promise.all([
+      obtenerDatosBancarios(true),
+      fetch(`${API_BASE}/socios?periodo=2026-10`),
+      cargarPlantillaWhatsApp()
+    ]);
+
+    const todosSocios = await resSocios.json();
+    state.sociosConDeudaRecordatorio = todosSocios.filter(s => (s.cuotas_pendientes || 0) > 0);
+
+    const selectorGrupo = document.getElementById('filtroRecordatorioGrupo');
+    if (selectorGrupo) selectorGrupo.value = 'TODOS';
+
+    filtrarSociosRecordatorio();
+  } catch (err) {
+    lista.innerHTML = `<div class="text-center py-6 text-rose-500 text-xs">Error al cargar socios: ${err.message}</div>`;
+  }
+};
+
+window.filtrarSociosRecordatorio = function() {
+  const lista = document.getElementById('listaSociosRecordatorio');
+  if (!lista || !state.sociosConDeudaRecordatorio) return;
+
+  const selector = document.getElementById('filtroRecordatorioGrupo');
+  const grupo = selector ? selector.value : 'TODOS';
+  let filtrados = state.sociosConDeudaRecordatorio;
+
+  if (grupo === 'FUND') {
+    filtrados = filtrados.filter(s => s.numero_socio.startsWith('FUND'));
+  } else if (grupo === 'FUT') {
+    filtrados = filtrados.filter(s => s.numero_socio.startsWith('FUT') || (s.disciplinas_str && s.disciplinas_str.includes('Fútbol')));
+  } else if (grupo === 'ATL') {
+    filtrados = filtrados.filter(s => s.numero_socio.startsWith('ATL') || (s.disciplinas_str && s.disciplinas_str.includes('Atletismo')));
+  } else if (grupo === 'HB') {
+    filtrados = filtrados.filter(s => s.numero_socio.startsWith('HB') || (s.disciplinas_str && s.disciplinas_str.includes('Handball')));
+  } else if (grupo === 'VOL') {
+    filtrados = filtrados.filter(s => s.numero_socio.startsWith('VOL') || s.numero_socio.startsWith('VFA') || s.numero_socio.startsWith('VMA') || (s.disciplinas_str && s.disciplinas_str.includes('Voley')));
+  } else if (grupo === 'GEN') {
+    filtrados = filtrados.filter(s => s.numero_socio.startsWith('GEN') || (!s.disciplinas_str));
+  }
+
+  const totalMonto = filtrados.reduce((acc, s) => acc + (s.deuda_total || 0), 0);
+  const elCant = document.getElementById('cantMorososRecordatorio');
+  if (elCant) elCant.textContent = `${filtrados.length} socios pendientes`;
+  const elTotal = document.getElementById('totalMontoRecordatorio');
+  if (elTotal) elTotal.textContent = formatCurrency(totalMonto);
+
+  if (filtrados.length === 0) {
+    lista.innerHTML = '<div class="text-center py-8 text-emerald-600 font-bold text-xs bg-emerald-50 rounded-2xl border border-emerald-200">🎉 ¡Excelente! No hay socios con deuda en este grupo.</div>';
+    return;
+  }
+
+  lista.innerHTML = '';
+  filtrados.forEach(s => {
+    const item = document.createElement('div');
+    item.className = 'p-3 rounded-2xl bg-white border border-slate-200 hover:border-emerald-300 hover:shadow-sm transition flex flex-col sm:flex-row sm:items-center justify-between gap-3';
+    
+    const tieneTel = !!s.telefono;
+    const telBadge = tieneTel 
+      ? `<span class="text-[11px] font-mono text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">📱 ${s.telefono}</span>`
+      : `<span class="text-[11px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">⚠️ Sin Celular</span>`;
+
+    item.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs border border-slate-200">
+          ${s.numero_socio.substring(0, 3)}
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-slate-900">${s.nombre} ${s.apellido}</span>
+            <span class="text-[10px] font-mono bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-semibold">${s.numero_socio}</span>
+          </div>
+          <div class="flex flex-wrap items-center gap-2 mt-0.5">
+            ${telBadge}
+            <span class="text-[10px] text-slate-400 truncate max-w-[160px]">${s.disciplinas_str || s.categoria_nombre}</span>
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+        <div class="text-left sm:text-right">
+          <span class="text-[10px] uppercase font-bold text-slate-400 block">${s.cuotas_pendientes} cuota(s)</span>
+          <span class="text-xs font-black text-rose-600">${formatCurrency(s.deuda_total)}</span>
+        </div>
+        <button onclick="enviarRecordatorioWhatsApp(${s.id})" title="Enviar WhatsApp a ${s.nombre}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-1.5 rounded-xl shadow-sm hover:shadow transition flex items-center gap-1.5 cursor-pointer">
+          <span>💬</span> Enviar
+        </button>
+      </div>
+    `;
+    lista.appendChild(item);
+  });
 };
