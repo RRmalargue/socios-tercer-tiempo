@@ -656,6 +656,53 @@ app.get('/api/socios', (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+// -------------------------------------------------------------
+// VERIFICAR DUPLICADOS DE SOCIO EN TIEMPO REAL
+// -------------------------------------------------------------
+app.get('/api/socios/verificar-duplicado', (req, res) => {
+  try {
+    const { dni = '', nombre = '', apellido = '' } = req.query;
+    const dniLimpio = dni.toString().replace(/\D/g, '').trim();
+
+    if (dniLimpio && dniLimpio.length >= 6) {
+      const existeDni = db.prepare(`
+        SELECT id, numero_socio, nombre, apellido, dni FROM socios
+        WHERE REPLACE(REPLACE(REPLACE(dni, '.', ''), '-', ''), ' ', '') = ?
+           OR dni = ?
+      `).get(dniLimpio, dni.trim());
+      if (existeDni) {
+        return res.json({
+          duplicado: true,
+          motivo: 'dni',
+          mensaje: `Ya existe un socio registrado con el DNI ${dni.trim()} (${existeDni.nombre} ${existeDni.apellido} - N° de Socio: ${existeDni.numero_socio}).`,
+          socio: existeDni
+        });
+      }
+    }
+
+    if (nombre.trim() && apellido.trim()) {
+      const nom = nombre.trim();
+      const ape = apellido.trim();
+      const existeNombre = db.prepare(`
+        SELECT id, numero_socio, nombre, apellido, dni FROM socios
+        WHERE (LOWER(TRIM(nombre)) = LOWER(?) AND LOWER(TRIM(apellido)) = LOWER(?))
+           OR (LOWER(TRIM(nombre)) = LOWER(?) AND LOWER(TRIM(apellido)) = LOWER(?))
+      `).get(nom, ape, ape, nom);
+      if (existeNombre) {
+        return res.json({
+          duplicado: true,
+          motivo: 'nombre',
+          mensaje: `Ya existe un socio registrado con el nombre "${existeNombre.nombre} ${existeNombre.apellido}" (N° de Socio: ${existeNombre.numero_socio}, DNI: ${existeNombre.dni}).`,
+          socio: existeNombre
+        });
+      }
+    }
+
+    return res.json({ duplicado: false });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.get('/api/socios/:id', (req, res) => {
   try {
@@ -704,6 +751,7 @@ app.get('/api/socios/:id', (req, res) => {
   }
 });
 
+
 app.post('/api/socios', (req, res) => {
   try {
     const {
@@ -717,10 +765,42 @@ app.post('/api/socios', (req, res) => {
       return res.status(400).json({ error: 'Nombre, apellido, DNI y categoría son obligatorios.' });
     }
 
-    // Comprobar DNI duplicado
-    const existeDni = db.prepare('SELECT id FROM socios WHERE dni = ?').get(dni.trim());
+    const dniLimpio = dni.toString().replace(/\D/g, '').trim();
+    const nomTrim = nombre.trim();
+    const apeTrim = apellido.trim();
+
+    // 1. Comprobar DNI duplicado (normalizado y exacto)
+    const existeDni = db.prepare(`
+      SELECT id, numero_socio, nombre, apellido, dni FROM socios 
+      WHERE REPLACE(REPLACE(REPLACE(dni, '.', ''), '-', ''), ' ', '') = ?
+         OR dni = ?
+    `).get(dniLimpio || dni.trim(), dni.trim());
     if (existeDni) {
-      return res.status(400).json({ error: 'Ya existe un socio registrado con ese DNI.' });
+      return res.status(400).json({
+        error: `Ya existe un socio registrado con el DNI ${dni.trim()} (${existeDni.nombre} ${existeDni.apellido} - N° ${existeDni.numero_socio}). No es necesario inscribirse dos veces.`
+      });
+    }
+
+    // 2. Comprobar Nombre y Apellido duplicado
+    const existeNombre = db.prepare(`
+      SELECT id, numero_socio, nombre, apellido, dni FROM socios
+      WHERE (LOWER(TRIM(nombre)) = LOWER(?) AND LOWER(TRIM(apellido)) = LOWER(?))
+         OR (LOWER(TRIM(nombre)) = LOWER(?) AND LOWER(TRIM(apellido)) = LOWER(?))
+    `).get(nomTrim, apeTrim, apeTrim, nomTrim);
+    if (existeNombre) {
+      return res.status(400).json({
+        error: `Ya existe un socio registrado con el nombre "${existeNombre.nombre} ${existeNombre.apellido}" (N° ${existeNombre.numero_socio}, DNI: ${existeNombre.dni}). Si ya sos socio, ingresá directamente desde el Portal Socio.`
+      });
+    }
+
+    // 3. Comprobar Email duplicado (si se especificó)
+    if (email && email.trim()) {
+      const existeEmail = db.prepare('SELECT id, numero_socio, nombre, apellido, dni FROM socios WHERE LOWER(TRIM(email)) = LOWER(?)').get(email.trim());
+      if (existeEmail) {
+        return res.status(400).json({
+          error: `Ya existe un socio registrado con el correo "${email.trim()}" (${existeEmail.nombre} ${existeEmail.apellido} - N° ${existeEmail.numero_socio}).`
+        });
+      }
     }
 
     // Generar nuevo número de socio según disciplina o categoría
@@ -1464,16 +1544,56 @@ app.get('/api/control-acceso/verificar', (req, res) => {
 app.get('/api/socio/perfil', (req, res) => {
   try {
     const { search } = req.query;
-    if (!search) return res.status(400).json({ error: 'Ingrese DNI o N° de Socio' });
+    if (!search || !search.trim()) return res.status(400).json({ error: 'Ingrese DNI o N° de Socio' });
 
-    const socio = db.prepare(`
-      SELECT s.*, cat.nombre as categoria_nombre, cat.cuota_base
-      FROM socios s
-      JOIN categorias cat ON s.categoria_id = cat.id
-      WHERE s.dni = ? OR s.numero_socio = ?
-    `).get(search.trim(), search.trim());
+    const rawTerm = search.trim();
+    const digitsOnly = rawTerm.replace(/\D/g, '');
+    const upperTerm = rawTerm.toUpperCase();
 
-    if (!socio) return res.status(404).json({ error: 'No se encontró ningún socio con esos datos.' });
+    let socio = null;
+
+    // 1. Búsqueda por DNI (limpiando puntos, espacios y guiones)
+    if (digitsOnly.length >= 6) {
+      socio = db.prepare(`
+        SELECT s.*, cat.nombre as categoria_nombre, cat.cuota_base
+        FROM socios s
+        JOIN categorias cat ON s.categoria_id = cat.id
+        WHERE REPLACE(REPLACE(REPLACE(s.dni, '.', ''), '-', ''), ' ', '') = ?
+           OR s.dni = ?
+        LIMIT 1
+      `).get(digitsOnly, rawTerm);
+    }
+
+    // 2. Búsqueda por N° de Socio (insensible a mayúsculas/minúsculas, ej: atl-022, ATL-022, ATL 022)
+    if (!socio) {
+      socio = db.prepare(`
+        SELECT s.*, cat.nombre as categoria_nombre, cat.cuota_base
+        FROM socios s
+        JOIN categorias cat ON s.categoria_id = cat.id
+        WHERE UPPER(TRIM(s.numero_socio)) = ?
+           OR UPPER(REPLACE(s.numero_socio, '-', '')) = UPPER(REPLACE(?, '-', ''))
+           OR UPPER(s.numero_socio) LIKE ?
+        LIMIT 1
+      `).get(upperTerm, upperTerm, `%${upperTerm}%`);
+    }
+
+    // 3. Búsqueda por Nombre / Apellido (por si ingresan su nombre completo)
+    if (!socio && rawTerm.length >= 3) {
+      socio = db.prepare(`
+        SELECT s.*, cat.nombre as categoria_nombre, cat.cuota_base
+        FROM socios s
+        JOIN categorias cat ON s.categoria_id = cat.id
+        WHERE (LOWER(s.nombre || ' ' || s.apellido) LIKE LOWER(?)
+           OR LOWER(s.apellido || ' ' || s.nombre) LIKE LOWER(?))
+        LIMIT 1
+      `).get(`%${rawTerm}%`, `%${rawTerm}%`);
+    }
+
+    if (!socio) {
+      return res.status(404).json({ 
+        error: `No se encontró ningún socio con "${rawTerm}". Verificá tu número de DNI (Ej: 17080759) o tu N° de socio (Ej: ATL-022).` 
+      });
+    }
 
     const disciplinas = db.prepare(`
       SELECT d.nombre, d.arancel_mensual, d.profesor, d.dias_horarios

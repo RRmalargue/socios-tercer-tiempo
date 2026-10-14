@@ -825,7 +825,7 @@ async function handleGuardarSocio(e) {
   const payload = {
     nombre: document.getElementById('socioNombre').value.trim(),
     apellido: document.getElementById('socioApellido').value.trim(),
-    dni: document.getElementById('socioDni').value.trim(),
+    dni: document.getElementById('socioDni').value.replace(/\D/g, '').trim(),
     fecha_nacimiento: document.getElementById('socioFechaNac').value || '',
     edad: parseInt(document.getElementById('socioEdad').value) || null,
     estado_civil: document.getElementById('socioEstadoCivil').value || '',
