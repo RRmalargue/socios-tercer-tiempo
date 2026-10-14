@@ -18,6 +18,13 @@ const formatCurrency = (amount) => {
 // Registros en memoria por ID para evitar problemas de serialización en HTML
 const cuotasRegistry = new Map();
 const pagosRegistry = new Map();
+const comprobantesRegistry = new Map();
+
+function verComprobantePorId(id) {
+  const r = comprobantesRegistry.get(id);
+  if (!r) return;
+  verComprobanteGrande(r.archivo_url, `${r.nombre} ${r.apellido} - ${r.periodo}`);
+}
 
 function abrirCobroPorId(id) {
   const c = cuotasRegistry.get(id);
@@ -216,14 +223,25 @@ async function loadDashboard() {
     const anualDetalleEl = document.getElementById('kpiTotalAnualDetalle');
     if (anualDetalleEl) anualDetalleEl.textContent = `${data.totalAnualPagos || 991} pagos en la temporada`;
 
-    // Actualizar badge del navbar
+    // Actualizar badge del navbar y banner del dashboard
+    const count = data.comprobantesPendientesCount || 0;
     const badge = document.getElementById('badgeComprobantesPendientes');
     if (badge) {
-      if (data.comprobantesPendientesCount > 0) {
-        badge.textContent = data.comprobantesPendientesCount;
+      if (count > 0) {
+        badge.textContent = count;
         badge.classList.remove('hidden');
       } else {
         badge.classList.add('hidden');
+      }
+    }
+    const banner = document.getElementById('bannerComprobantesPendientes');
+    const bannerCount = document.getElementById('bannerComprobantesCount');
+    if (banner) {
+      if (count > 0) {
+        if (bannerCount) bannerCount.textContent = `${count} pendiente${count > 1 ? 's' : ''}`;
+        banner.classList.remove('hidden');
+      } else {
+        banner.classList.add('hidden');
       }
     }
 
@@ -1257,6 +1275,7 @@ async function loadComprobantesTesoreria() {
     }
 
     rows.forEach(r => {
+      comprobantesRegistry.set(r.id, r);
       let estadoBadge = '';
       if (r.estado === 'Aprobado') {
         estadoBadge = '<span class="bg-emerald-100 text-emerald-800 text-xs font-bold px-2.5 py-1 rounded-full">✓ Aprobado</span>';
@@ -1270,7 +1289,7 @@ async function loadComprobantesTesoreria() {
       let comprobanteHtml = '<span class="text-xs text-slate-400 italic">Sin imagen</span>';
       if (r.archivo_url && r.archivo_url.startsWith('data:image')) {
         comprobanteHtml = `
-          <button onclick="verComprobanteGrande('${r.archivo_url}', '${r.nombre} ${r.apellido} - ${r.periodo}')" class="group relative block w-12 h-12 rounded-lg overflow-hidden border border-slate-300 shadow-sm hover:ring-2 hover:ring-indigo-500 transition">
+          <button onclick="verComprobantePorId(${r.id})" class="group relative block w-12 h-12 rounded-lg overflow-hidden border border-slate-300 shadow-sm hover:ring-2 hover:ring-indigo-500 transition cursor-pointer">
             <img src="${r.archivo_url}" class="w-full h-full object-cover">
             <span class="absolute inset-0 bg-black/40 text-white flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition">🔍</span>
           </button>

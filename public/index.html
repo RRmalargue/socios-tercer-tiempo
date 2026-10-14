@@ -179,6 +179,25 @@
         </div>
       </div>
 
+      <!-- Alerta Comprobantes Pendientes de Conciliación -->
+      <div id="bannerComprobantesPendientes" class="hidden bg-gradient-to-r from-amber-500/15 via-rose-500/15 to-amber-500/15 border-2 border-amber-400/60 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-amber-500 text-zinc-950 font-black flex items-center justify-center text-xl shadow-md">
+            📥
+          </div>
+          <div>
+            <div class="font-black text-slate-900 text-sm sm:text-base flex items-center gap-2">
+              <span>Transferencias informadas por socios pendientes de conciliar</span>
+              <span id="bannerComprobantesCount" class="bg-rose-600 text-white text-xs font-black px-2 py-0.5 rounded-full shadow-sm">1</span>
+            </div>
+            <p class="text-xs text-slate-600">Revisá el comprobante adjunto y acreditá el pago en caja con 1 solo clic.</p>
+          </div>
+        </div>
+        <button onclick="setTab('tesoreria')" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-zinc-950 font-black text-xs px-4 py-2.5 rounded-2xl transition shadow-md flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap">
+          <span>📥</span> Ir a Conciliar Comprobantes ❯
+        </button>
+      </div>
+
       <!-- 4 Tarjetas de Métricas Ejecutivas del Mes (KPIs Deportivos) -->
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- 1. Padrón Total -->
@@ -1832,6 +1851,6 @@
     Club Tercer Tiempo &bull; Sistema de control de socios, cuotas y cobranzas &bull; Base de Datos SQLite
   </footer>
 
-  <script src="app.js?v=2.5.0"></script>
+  <script src="app.js?v=2.5.1"></script>
 </body>
 </html>
