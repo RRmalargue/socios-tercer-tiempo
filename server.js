@@ -878,7 +878,7 @@ app.post('/api/socios', (req, res) => {
         }
       }
 
-      // Generar primera cuota del mes corriente
+      // Generar primera cuota del mes corriente: al inscribirse un nuevo socio SOLO paga la cuota base de $10.000
       const categoria = db.prepare('SELECT * FROM categorias WHERE id = ?').get(categoria_id);
       const discList = db.prepare(`
         SELECT d.nombre, d.arancel_mensual 
@@ -887,12 +887,12 @@ app.post('/api/socios', (req, res) => {
         WHERE sd.socio_id = ?
       `).all(socioId);
 
-      const totalDisc = discList.reduce((sum, d) => sum + d.arancel_mensual, 0);
-      const montoTotal = (categoria ? categoria.cuota_base : 0) + totalDisc;
+      // Al inscribirse sólo paga la cuota base establecida de $10.000
+      const montoTotal = (categoria && categoria.cuota_base > 0) ? categoria.cuota_base : 10000;
       const currentPeriod = '2026-10';
       const [anioStr, mesStr] = currentPeriod.split('-');
 
-      let concepto = `Cuota Social (${categoria ? categoria.nombre : ''})`;
+      let concepto = `Cuota Social (${categoria ? categoria.nombre : 'Socio'})`;
       if (discList.length > 0) concepto += ` + ${discList.map(d => d.nombre).join(', ')}`;
 
       db.prepare(`
