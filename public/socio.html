@@ -374,15 +374,10 @@
       }
 
       const canvas = document.getElementById('carnetModalQrCanvas');
-      const qrData = JSON.stringify({
-        id: s.id,
-        socio: s.numero_socio,
-        dni: s.dni,
-        estado: socioActual.alDia ? 'HABILITADO' : 'INHABILITADO'
-      });
+      const qrUrl = `${window.location.origin}/control.html?id=${s.id}`;
 
       if (window.QRCode) {
-        QRCode.toCanvas(canvas, qrData, { width: 160, margin: 1, color: { dark: '#0f172a', light: '#ffffff' } });
+        QRCode.toCanvas(canvas, qrUrl, { width: 160, margin: 1, color: { dark: '#0f172a', light: '#ffffff' } });
       }
 
       document.getElementById('modalCarnetSocio').classList.remove('hidden');

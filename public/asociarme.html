@@ -11,10 +11,40 @@
   <style>
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
     @media print {
-      body { background: white; color: black; }
-      .no-print { display: none !important; }
-      #printableForm { display: block !important; border: none !important; padding: 0 !important; }
-      .page-break { page-break-before: always; }
+      @page {
+        size: A4 portrait;
+        margin: 10mm 15mm;
+      }
+      body {
+        background: white !important;
+        color: black !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      header, main, #fichaCard, #modalExito, .no-print {
+        display: none !important;
+        visibility: hidden !important;
+      }
+      #printableForm {
+        display: block !important;
+        visibility: visible !important;
+        position: static !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        background: white !important;
+        color: black !important;
+        box-shadow: none !important;
+      }
+      #printableForm * {
+        visibility: visible !important;
+      }
+      .page-break {
+        page-break-before: always !important;
+        break-before: page !important;
+      }
     }
   </style>
 </head>
@@ -39,7 +69,7 @@
   </header>
 
   <!-- Contenedor Principal de la Ficha -->
-  <main class="w-full max-w-3xl p-4 sm:p-6 my-4">
+  <main class="w-full max-w-3xl p-4 sm:p-6 my-4 no-print">
 
     <!-- Card del Formulario Web -->
     <div id="fichaCard" class="bg-white rounded-3xl p-6 sm:p-10 shadow-lg border border-slate-200 space-y-8">
@@ -274,7 +304,7 @@
     </div>
 
     <!-- Modal Éxito y Ficha Oficial Generada -->
-    <div id="modalExito" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div id="modalExito" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 no-print">
       <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl space-y-5 text-center">
         <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full mx-auto flex items-center justify-center text-3xl font-black">
           ✓

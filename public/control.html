@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Control de Acceso y Molinete QR - Club Tercer Tiempo Malargüe</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- HTML5-QRCode Scanner Library -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 25px rgba(16, 185, 129, 0.4); }
+      50% { box-shadow: 0 0 45px rgba(16, 185, 129, 0.7); }
+    }
+    @keyframes pulseAlert {
+      0%, 100% { box-shadow: 0 0 25px rgba(225, 29, 72, 0.4); }
+      50% { box-shadow: 0 0 45px rgba(225, 29, 72, 0.7); }
+    }
+    .glow-success { animation: pulseGlow 2s infinite; }
+    .glow-danger { animation: pulseAlert 1.5s infinite; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans selection:bg-emerald-500 selection:text-black">
+
+  <!-- Header Institucional -->
+  <header class="bg-zinc-900 border-b border-emerald-500/30 shadow-xl px-4 py-3 sticky top-0 z-30">
+    <div class="max-w-4xl mx-auto flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <img src="/logo.jpg" alt="Logo Club" class="w-11 h-11 rounded-2xl object-cover ring-2 ring-emerald-400 p-0.5 bg-black">
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-black text-sm sm:text-base tracking-tight text-white">Club Tercer Tiempo</h1>
+            <span class="text-[9px] font-mono font-bold bg-emerald-500 text-black px-2 py-0.5 rounded-full uppercase">Molinete QR</span>
+          </div>
+          <p class="text-[11px] text-emerald-400 font-semibold">Control de Acceso en Puerta / Predio Deportivo</p>
+        </div>
+      </div>
+      <div class="text-right flex items-center gap-2">
+        <div id="relojDigital" class="text-xs font-mono font-bold text-slate-300 hidden sm:block bg-zinc-800 px-3 py-1.5 rounded-xl border border-zinc-700">--:--:--</div>
+        <a href="/" class="bg-zinc-800 hover:bg-zinc-700 text-slate-300 px-3 py-1.5 rounded-xl text-xs font-bold border border-zinc-700 transition">
+          Panel Admin ➔
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Contenedor Principal -->
+  <main class="max-w-4xl w-full mx-auto p-4 sm:p-6 flex-1 space-y-6">
+
+    <!-- Buscador / Entrada Rápida de Socio -->
+    <div class="bg-zinc-900/90 rounded-3xl p-5 border border-zinc-800 shadow-2xl space-y-4">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <div class="flex-1 relative">
+          <span class="absolute left-4 top-3.5 text-slate-400 text-lg">🔍</span>
+          <input 
+            type="text" 
+            id="inputBusquedaSocio" 
+            autofocus
+            placeholder="Pistoleá el QR, ingresá DNI o N° de Socio (ej: ATL-021)..." 
+            class="w-full pl-12 pr-4 py-3.5 bg-zinc-950 border-2 border-zinc-700 focus:border-emerald-500 rounded-2xl text-sm sm:text-base font-bold text-white placeholder:text-slate-500 focus:outline-none transition shadow-inner"
+          >
+        </div>
+        <button 
+          onclick="ejecutarVerificacionManual()" 
+          class="bg-emerald-500 hover:bg-emerald-400 text-zinc-950 font-black px-6 py-3.5 rounded-2xl text-sm transition shadow-lg shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2"
+        >
+          <span>⚡</span> Verificar Acceso
+        </button>
+        <button 
+          type="button" 
+          id="btnToggleCamara"
+          onclick="toggleEscanerCamara()" 
+          class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-3.5 rounded-2xl text-sm transition shadow flex items-center justify-center gap-2 cursor-pointer"
+          title="Abrir cámara del celular o computadora para escanear"
+        >
+          <span>📷</span> <span class="hidden sm:inline">Escanear</span> QR
+        </button>
+      </div>
+
+      <!-- Visor de Cámara para Escaneo QR -->
+      <div id="contenedorEscanerCamara" class="hidden bg-zinc-950 rounded-2xl p-4 border border-indigo-500/40 text-center space-y-3">
+        <div class="flex justify-between items-center text-xs font-bold text-indigo-300">
+          <span>📷 Apuntá la cámara al Carnet QR del socio:</span>
+          <button onclick="detenerEscanerCamara()" class="text-rose-400 hover:text-rose-300">✕ Cerrar cámara</button>
+        </div>
+        <div id="reader" class="w-full max-w-sm mx-auto overflow-hidden rounded-xl border-2 border-emerald-400"></div>
+        <p class="text-[11px] text-slate-400">La validación se realiza de forma automática e instantánea al detectar el código.</p>
+      </div>
+    </div>
+
+    <!-- TARJETA DE RESULTADO DE ACCESO (Gigante y Visual) -->
+    <div id="cardResultadoAcceso" class="hidden rounded-3xl p-6 sm:p-8 border-2 transition-all duration-300 shadow-2xl">
+      <!-- Se inyecta dinámicamente con JS -->
+    </div>
+
+    <!-- Estado Inicial / Esperando Lectura -->
+    <div id="cardEstadoEspera" class="rounded-3xl p-8 border border-zinc-800 bg-zinc-900/40 text-center space-y-3">
+      <div class="w-16 h-16 rounded-3xl bg-zinc-800 text-zinc-500 flex items-center justify-center text-3xl mx-auto border border-zinc-700">
+        🪪
+      </div>
+      <h3 class="text-lg font-bold text-slate-300">Esperando Carnet o Código QR</h3>
+      <p class="text-xs text-slate-500 max-w-md mx-auto">
+        El socio puede mostrar su Carnet Digital en su celular desde <strong>/socio.html</strong>. Al escanearlo o ingresar su DNI/N° de socio, aquí aparecerá si está habilitado para ingresar.
+      </p>
+    </div>
+
+    <!-- Historial de Accesos del Turno -->
+    <div class="bg-zinc-900 rounded-3xl p-5 border border-zinc-800 shadow-xl space-y-3">
+      <div class="flex justify-between items-center">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+          <span>⏱️</span> Accesos Validados Hoy
+        </h3>
+        <span id="contadorAccesos" class="text-xs font-mono font-bold text-emerald-400">0 validados</span>
+      </div>
+      <div id="listaHistorialAccesos" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+        <div class="text-center py-6 text-slate-500 text-xs">No hay validaciones registradas en este turno aún.</div>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="bg-zinc-950 border-t border-zinc-800 py-3 text-center text-xs text-slate-500">
+    Club Deportivo Tercer Tiempo Malargüe &bull; Sistema de Control de Acceso y Puerta
+  </footer>
+
+  <script>
+    const API_BASE = '/api';
+    let html5QrcodeScanner = null;
+    let historialAccesos = [];
+
+    // Reloj digital
+    setInterval(() => {
+      const ahora = new Date();
+      const elReloj = document.getElementById('relojDigital');
+      if (elReloj) {
+        elReloj.textContent = ahora.toLocaleTimeString('es-AR');
+      }
+    }, 1000);
+
+    // Revisar si la URL trae un parámetro directo (ej: ?id=21 o ?dni=...)
+    document.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const idParam = urlParams.get('id');
+      const dniParam = urlParams.get('dni') || urlParams.get('socio');
+      const queryParam = urlParams.get('q');
+
+      if (idParam) {
+        verificarAcceso({ id: idParam });
+      } else if (dniParam) {
+        verificarAcceso({ query: dniParam });
+      } else if (queryParam) {
+        verificarAcceso({ query: queryParam });
+      }
+
+      // Enter en input de búsqueda
+      const input = document.getElementById('inputBusquedaSocio');
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          ejecutarVerificacionManual();
+        }
+      });
+    });
+
+    function ejecutarVerificacionManual() {
+      const val = document.getElementById('inputBusquedaSocio').value.trim();
+      if (!val) return;
+      verificarAcceso({ query: val });
+    }
+
+    async function verificarAcceso(params) {
+      const cardEspera = document.getElementById('cardEstadoEspera');
+      const cardResultado = document.getElementById('cardResultadoAcceso');
+      const input = document.getElementById('inputBusquedaSocio');
+
+      try {
+        const queryParams = new URLSearchParams(params);
+        const res = await fetch(`${API_BASE}/control-acceso/verificar?${queryParams.toString()}`);
+        const data = await res.json();
+
+        cardEspera.classList.add('hidden');
+        cardResultado.classList.remove('hidden');
+
+        if (!res.ok) {
+          mostrarResultadoDenegado({
+            titulo: 'Socio No Encontrado',
+            subtitulo: data.error || 'No se encontró registro en la base de datos.',
+            detalle: 'Verificá el número de socio o DNI ingresado.'
+          });
+          return;
+        }
+
+        const s = data.socio;
+        const alDia = data.alDia;
+
+        if (alDia) {
+          mostrarResultadoPermitido(data);
+          reproducirBeep(true);
+        } else {
+          mostrarResultadoDenegado({
+            socio: s,
+            cuotasAdeudadas: data.cuotasAdeudadas,
+            totalDeuda: data.totalDeuda,
+            cuotasDetalle: data.cuotasDetalle,
+            subtitulo: `Adeuda ${data.cuotasAdeudadas} cuota(s) por un total de $${(data.totalDeuda || 0).toLocaleString('es-AR')}`
+          });
+          reproducirBeep(false);
+        }
+
+        // Agregar al historial
+        agregarAlHistorial(s, alDia);
+
+        // Limpiar input y re-enfocar para el siguiente
+        if (input) {
+          input.value = '';
+          input.focus();
+        }
+      } catch (err) {
+        cardEspera.classList.add('hidden');
+        cardResultado.classList.remove('hidden');
+        mostrarResultadoDenegado({
+          titulo: 'Error de Conexión',
+          subtitulo: err.message
+        });
+      }
+    }
+
+    function mostrarResultadoPermitido(data) {
+      const card = document.getElementById('cardResultadoAcceso');
+      const s = data.socio;
+      const hora = new Date().toLocaleTimeString('es-AR');
+
+      card.className = 'rounded-3xl p-6 sm:p-8 border-2 border-emerald-400 bg-gradient-to-br from-emerald-950/80 via-zinc-900 to-zinc-950 glow-success space-y-4';
+      card.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-emerald-500/30 pb-4">
+          <div class="flex items-center gap-3 sm:gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-emerald-500 text-zinc-950 font-black flex items-center justify-center text-3xl shadow-lg">
+              ✓
+            </div>
+            <div>
+              <span class="text-xs font-mono font-black uppercase tracking-widest text-emerald-400 bg-emerald-950 px-2.5 py-0.5 rounded-full border border-emerald-500/40">
+                Pase Habilitado
+              </span>
+              <h2 class="text-2xl sm:text-3xl font-black text-white mt-1">ACCESO CONCEDIDO</h2>
+              <p class="text-xs text-emerald-300 font-semibold">Validado a las ${hora} hs</p>
+            </div>
+          </div>
+          <div class="text-left sm:text-right">
+            <span class="text-xs font-bold text-slate-400 block uppercase">Estado Administrativo</span>
+            <span class="text-sm font-black text-emerald-400 bg-emerald-500/20 px-3 py-1 rounded-xl border border-emerald-500/30">
+              🟢 Cuota al Día (Octubre 2026)
+            </span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-zinc-950/70 p-4 rounded-2xl border border-zinc-800 text-xs">
+          <div>
+            <span class="text-slate-400 block font-bold text-[10px] uppercase">Nombre del Socio</span>
+            <span class="text-base font-bold text-white">${s.nombre} ${s.apellido}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block font-bold text-[10px] uppercase">N° Socio</span>
+            <span class="text-base font-mono font-bold text-emerald-400">${s.numero_socio}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block font-bold text-[10px] uppercase">DNI</span>
+            <span class="text-base font-mono font-bold text-slate-200">${s.dni}</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block font-bold text-[10px] uppercase">Disciplina / Categoría</span>
+            <span class="text-base font-bold text-indigo-300 truncate block">${s.disciplinas || s.categoria_nombre}</span>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs text-emerald-300">
+          <p>🎉 El socio puede ingresar sin restricciones al predio y sus actividades.</p>
+          <button onclick="resetearVista()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold px-4 py-2 rounded-xl transition">
+            Siguiente Socio ➔
+          </button>
+        </div>
+      `;
+    }
+
+    function mostrarResultadoDenegado(info) {
+      const card = document.getElementById('cardResultadoAcceso');
+      const s = info.socio;
+      const hora = new Date().toLocaleTimeString('es-AR');
+
+      card.className = 'rounded-3xl p-6 sm:p-8 border-2 border-rose-500 bg-gradient-to-br from-rose-950/80 via-zinc-900 to-zinc-950 glow-danger space-y-4';
+      
+      let detalleCuotasHtml = '';
+      if (Array.isArray(info.cuotasDetalle) && info.cuotasDetalle.length > 0) {
+        detalleCuotasHtml = info.cuotasDetalle.map(c => 
+          `<li class="text-rose-300">• <strong>${c.periodo}</strong> - ${c.concepto}: $${c.saldo.toLocaleString('es-AR')}</li>`
+        ).join('');
+      }
+
+      card.innerHTML = `
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-rose-500/30 pb-4">
+          <div class="flex items-center gap-3 sm:gap-4">
+            <div class="w-16 h-16 rounded-2xl bg-rose-600 text-white font-black flex items-center justify-center text-3xl shadow-lg">
+              ✕
+            </div>
+            <div>
+              <span class="text-xs font-mono font-black uppercase tracking-widest text-rose-400 bg-rose-950 px-2.5 py-0.5 rounded-full border border-rose-500/40">
+                Acceso Inhabilitado
+              </span>
+              <h2 class="text-2xl sm:text-3xl font-black text-rose-100 mt-1">ACCESO DENEGADO</h2>
+              <p class="text-xs text-rose-300 font-semibold">${info.subtitulo || 'Registra cuotas pendientes de pago'}</p>
+            </div>
+          </div>
+          <div class="text-left sm:text-right">
+            <span class="text-xs font-bold text-slate-400 block uppercase">Hora de intento</span>
+            <span class="text-xs font-mono text-slate-300">${hora} hs</span>
+          </div>
+        </div>
+
+        ${s ? `
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 bg-zinc-950/70 p-4 rounded-2xl border border-zinc-800 text-xs">
+            <div>
+              <span class="text-slate-400 block font-bold text-[10px] uppercase">Nombre del Socio</span>
+              <span class="text-base font-bold text-white">${s.nombre} ${s.apellido}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block font-bold text-[10px] uppercase">N° Socio</span>
+              <span class="text-base font-mono font-bold text-rose-400">${s.numero_socio}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block font-bold text-[10px] uppercase">DNI</span>
+              <span class="text-base font-mono font-bold text-slate-200">${s.dni}</span>
+            </div>
+            <div>
+              <span class="text-slate-400 block font-bold text-[10px] uppercase">Deuda Acumulada</span>
+              <span class="text-base font-black text-rose-500">$${(info.totalDeuda || 0).toLocaleString('es-AR')}</span>
+            </div>
+          </div>
+
+          ${detalleCuotasHtml ? `
+            <div class="bg-rose-950/40 p-3 rounded-2xl border border-rose-500/30 text-xs space-y-1">
+              <span class="font-bold text-rose-300 block">Detalle de Cuotas Pendientes:</span>
+              <ul class="space-y-0.5 pl-1">${detalleCuotasHtml}</ul>
+            </div>
+          ` : ''}
+        ` : `
+          <p class="text-sm text-slate-300">${info.subtitulo || ''}</p>
+        `}
+
+        <div class="flex flex-wrap items-center justify-between gap-3 pt-2 text-xs">
+          <p class="text-slate-400">⚠️ Indicar al socio que debe regularizar en secretaría o transferir desde su celular.</p>
+          <div class="flex gap-2">
+            ${s ? `
+              <a href="/?socio=${s.id}" target="_blank" class="bg-rose-600 hover:bg-rose-500 text-white font-bold px-3 py-2 rounded-xl transition">
+                Cobrar en Panel ➔
+              </a>
+            ` : ''}
+            <button onclick="resetearVista()" class="bg-zinc-800 hover:bg-zinc-700 text-white font-bold px-4 py-2 rounded-xl transition">
+              Siguiente Socio ➔
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function resetearVista() {
+      document.getElementById('cardResultadoAcceso').classList.add('hidden');
+      document.getElementById('cardEstadoEspera').classList.remove('hidden');
+      const input = document.getElementById('inputBusquedaSocio');
+      if (input) {
+        input.value = '';
+        input.focus();
+      }
+    }
+
+    function agregarAlHistorial(socio, alDia) {
+      if (!socio) return;
+      const hora = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      historialAccesos.unshift({ socio, alDia, hora });
+      if (historialAccesos.length > 20) historialAccesos.pop();
+
+      const contenedor = document.getElementById('listaHistorialAccesos');
+      const contador = document.getElementById('contadorAccesos');
+      contador.textContent = `${historialAccesos.length} validados`;
+
+      contenedor.innerHTML = '';
+      historialAccesos.forEach(item => {
+        const div = document.createElement('div');
+        div.className = `p-2.5 rounded-xl border flex items-center justify-between text-xs ${
+          item.alDia ? 'bg-zinc-950 border-emerald-500/30' : 'bg-rose-950/30 border-rose-500/30'
+        }`;
+        div.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <span class="w-6 h-6 rounded-lg font-bold flex items-center justify-center text-xs ${
+              item.alDia ? 'bg-emerald-500 text-black' : 'bg-rose-600 text-white'
+            }">
+              ${item.alDia ? '✓' : '✕'}
+            </span>
+            <div>
+              <span class="font-bold text-white">${item.socio.nombre} ${item.socio.apellido}</span>
+              <span class="text-[10px] text-slate-400 font-mono ml-1">(${item.socio.numero_socio})</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] font-bold ${item.alDia ? 'text-emerald-400' : 'text-rose-400'}">
+              ${item.alDia ? 'HABILITADO' : 'INHABILITADO'}
+            </span>
+            <span class="text-[10px] text-slate-500 font-mono">${item.hora}</span>
+          </div>
+        `;
+        contenedor.appendChild(div);
+      });
+    }
+
+    // Audio beep con Web Audio API (no requiere archivos externos)
+    function reproducirBeep(exito) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (exito) {
+          osc.frequency.setValueAtTime(880, ctx.currentTime); // La5
+          osc.frequency.setValueAtTime(1174, ctx.currentTime + 0.1); // Re6
+          gain.gain.setValueAtTime(0.3, ctx.currentTime);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.25);
+        } else {
+          osc.frequency.setValueAtTime(220, ctx.currentTime); // La3
+          gain.gain.setValueAtTime(0.4, ctx.currentTime);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.35);
+        }
+      } catch (e) {}
+    }
+
+    // Cámara Escáner QR con html5-qrcode
+    function toggleEscanerCamara() {
+      const cont = document.getElementById('contenedorEscanerCamara');
+      if (cont.classList.contains('hidden')) {
+        iniciarEscanerCamara();
+      } else {
+        detenerEscanerCamara();
+      }
+    }
+
+    function iniciarEscanerCamara() {
+      const cont = document.getElementById('contenedorEscanerCamara');
+      cont.classList.remove('hidden');
+
+      if (!html5QrcodeScanner && window.Html5Qrcode) {
+        html5QrcodeScanner = new Html5Qrcode("reader");
+      }
+
+      const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+      html5QrcodeScanner.start(
+        { facingMode: "environment" },
+        config,
+        (decodedText) => {
+          // Callback éxito
+          console.log('QR Detectado:', decodedText);
+          procesarTextoEscaneado(decodedText);
+        },
+        (errorMessage) => {
+          // escaneo continuo sin match, normal
+        }
+      ).catch(err => {
+        alert('No se pudo acceder a la cámara: ' + err);
+        cont.classList.add('hidden');
+      });
+    }
+
+    function detenerEscanerCamara() {
+      const cont = document.getElementById('contenedorEscanerCamara');
+      if (html5QrcodeScanner) {
+        html5QrcodeScanner.stop().then(() => {
+          cont.classList.add('hidden');
+        }).catch(() => {
+          cont.classList.add('hidden');
+        });
+      } else {
+        cont.classList.add('hidden');
+      }
+    }
+
+    function procesarTextoEscaneado(texto) {
+      detenerEscanerCamara();
+
+      // Si es una URL (ej: http://.../control.html?id=21)
+      if (texto.includes('control.html') || texto.includes('id=')) {
+        try {
+          const url = new URL(texto, window.location.origin);
+          const id = url.searchParams.get('id');
+          const dni = url.searchParams.get('dni') || url.searchParams.get('socio');
+          if (id) return verificarAcceso({ id });
+          if (dni) return verificarAcceso({ query: dni });
+        } catch (e) {}
+      }
+
+      // Si es un JSON (ej: {"id": 21, ...})
+      try {
+        const obj = JSON.parse(texto);
+        if (obj.id) return verificarAcceso({ id: obj.id });
+        if (obj.dni) return verificarAcceso({ query: obj.dni });
+        if (obj.socio) return verificarAcceso({ query: obj.socio });
+      } catch (e) {}
+
+      // Si es texto plano (DNI o N° Socio directo)
+      verificarAcceso({ query: texto.trim() });
+    }
+  </script>
+</body>
+</html>

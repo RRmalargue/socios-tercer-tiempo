@@ -1368,17 +1368,90 @@ app.get('/api/socios/:id/carnet', (req, res) => {
 
     const alDia = deuda.cuotas_adeudadas === 0 && socio.estado === 'Activo';
 
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+    const host = req.get('host') || 'localhost:3000';
+    const baseUrl = `${protocol}://${host}`;
+    const qrUrl = `${baseUrl}/control.html?id=${socio.id}`;
+
     res.json({
       socio,
       alDia,
       cuotasAdeudadas: deuda.cuotas_adeudadas,
       totalDeuda: deuda.total_deuda,
-      qrData: JSON.stringify({
+      qrUrl,
+      qrData: qrUrl
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Control de Acceso y Molinete Virtual (Verificación QR instantánea)
+app.get('/api/control-acceso/verificar', (req, res) => {
+  try {
+    const { query, id } = req.query;
+    let socio = null;
+
+    if (id) {
+      socio = db.prepare(`
+        SELECT s.*, cat.nombre as categoria_nombre
+        FROM socios s
+        JOIN categorias cat ON s.categoria_id = cat.id
+        WHERE s.id = ?
+      `).get(id);
+    } else if (query) {
+      const q = query.trim();
+      socio = db.prepare(`
+        SELECT s.*, cat.nombre as categoria_nombre
+        FROM socios s
+        JOIN categorias cat ON s.categoria_id = cat.id
+        WHERE s.id = ? OR s.dni = ? OR s.numero_socio = ?
+      `).get(q, q, q);
+    }
+
+    if (!socio) {
+      return res.status(404).json({ error: 'No se encontró ningún socio registrado con esos datos.' });
+    }
+
+    const disciplinas = db.prepare(`
+      SELECT d.nombre FROM socio_disciplinas sd
+      JOIN disciplinas d ON sd.disciplina_id = d.id
+      WHERE sd.socio_id = ?
+    `).all(socio.id).map(d => d.nombre);
+
+    const deuda = db.prepare(`
+      SELECT 
+        COUNT(CASE WHEN (c.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = c.id), 0)) > 0 THEN 1 END) as cuotas_adeudadas,
+        COALESCE(SUM(c.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = c.id), 0)), 0) as total_deuda
+      FROM cuotas c
+      WHERE c.socio_id = ? AND c.estado IN ('Pendiente', 'Vencida', 'Parcial') AND c.periodo <= '2026-10'
+    `).get(socio.id);
+
+    const cuotasPendientesDetalle = db.prepare(`
+      SELECT c.periodo, c.concepto, (c.monto_total - COALESCE((SELECT SUM(p.monto_pagado) FROM pagos p WHERE p.cuota_id = c.id), 0)) as saldo
+      FROM cuotas c
+      WHERE c.socio_id = ? AND c.estado IN ('Pendiente', 'Vencida', 'Parcial') AND c.periodo <= '2026-10'
+    `).all(socio.id).filter(c => c.saldo > 0);
+
+    const alDia = (deuda.cuotas_adeudadas === 0) && (socio.estado === 'Activo');
+
+    res.json({
+      socio: {
         id: socio.id,
-        socio: socio.numero_socio,
+        nombre: socio.nombre,
+        apellido: socio.apellido,
         dni: socio.dni,
-        estado: alDia ? 'HABILITADO' : 'INHABILITADO'
-      })
+        numero_socio: socio.numero_socio,
+        categoria_nombre: socio.categoria_nombre,
+        disciplinas: disciplinas.join(', ') || 'Ninguna disciplina registrada',
+        estado: socio.estado,
+        telefono: socio.telefono
+      },
+      alDia,
+      cuotasAdeudadas: deuda.cuotas_adeudadas,
+      totalDeuda: deuda.total_deuda,
+      cuotasDetalle: cuotasPendientesDetalle,
+      timestamp: new Date().toISOString()
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

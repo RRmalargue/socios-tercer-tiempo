@@ -804,6 +804,19 @@ async function loadSocios() {
   }
 }
 
+function calcularEdadNuevo() {
+  const fecha = document.getElementById('socioFechaNac').value;
+  if (!fecha) return;
+  const nacimiento = new Date(fecha);
+  const hoy = new Date();
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const m = hoy.getMonth() - nacimiento.getMonth();
+  if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad--;
+  }
+  document.getElementById('socioEdad').value = edad > 0 ? edad : 0;
+}
+
 async function handleGuardarSocio(e) {
   e.preventDefault();
   const checkboxes = document.querySelectorAll('#socioDisciplinasCheckboxes input[type="checkbox"]:checked');
@@ -813,9 +826,23 @@ async function handleGuardarSocio(e) {
     nombre: document.getElementById('socioNombre').value.trim(),
     apellido: document.getElementById('socioApellido').value.trim(),
     dni: document.getElementById('socioDni').value.trim(),
+    fecha_nacimiento: document.getElementById('socioFechaNac').value || '',
+    edad: parseInt(document.getElementById('socioEdad').value) || null,
+    estado_civil: document.getElementById('socioEstadoCivil').value || '',
     telefono: document.getElementById('socioTelefono').value.trim(),
     email: document.getElementById('socioEmail').value.trim(),
+    ocupacion: document.getElementById('socioOcupacion').value.trim(),
+    direccion: document.getElementById('socioDireccion').value.trim(),
     categoria_id: parseInt(document.getElementById('socioCategoria').value),
+    fecha_alta: document.getElementById('socioFechaAlta').value || null,
+    grupo_sanguineo: document.getElementById('socioGrupoSangre').value || '',
+    posee_obra_social: document.getElementById('socioPoseeObraSocial').value || 'NO',
+    nombre_obra_social: document.getElementById('socioObraSocial').value.trim(),
+    alergias_condiciones: document.getElementById('socioAlergias').value.trim(),
+    contacto_emergencia_nombre: document.getElementById('socioUrgenciaNombre').value.trim(),
+    contacto_emergencia_telefono: document.getElementById('socioUrgenciaTel').value.trim(),
+    tutor_nombre: document.getElementById('socioTutor').value.trim(),
+    socio_proponente: document.getElementById('socioProponente').value.trim(),
     disciplinas
   };
 
@@ -828,10 +855,11 @@ async function handleGuardarSocio(e) {
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Error al guardar socio');
 
-    alert(`✅ Socio creado exitosamente con N° ${data.numero_socio}`);
+    alert(`✅ Socio "${payload.nombre} ${payload.apellido}" registrado con éxito!\n• N° Socio asignado: ${data.numero_socio}\n• Ficha médica, datos personales y disciplinas guardados correctamente.`);
     closeModal('modalNuevoSocio');
     document.getElementById('formNuevoSocio').reset();
     loadSocios();
+    loadDashboard();
   } catch (err) {
     alert(`❌ ${err.message}`);
   }
@@ -1196,6 +1224,10 @@ async function verCarnet(socioId) {
 // UTILIDADES MODAL
 // ==========================================
 function openNuevoSocioModal() {
+  const elFecha = document.getElementById('socioFechaAlta');
+  if (elFecha && !elFecha.value) {
+    elFecha.value = new Date().toISOString().split('T')[0];
+  }
   document.getElementById('modalNuevoSocio').classList.remove('hidden');
 }
 
