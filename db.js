@@ -142,14 +142,51 @@ function seedInitialData() {
     insertDisciplina.run('Institucional', 10000, 'Secretaría Club', 'Lun a Sáb');
   }
 
-  // Asegurar configuración bancaria inicial para transferencias y portal de socios
-  const insertConfig = db.prepare('INSERT OR IGNORE INTO configuracion_club (clave, valor) VALUES (?, ?)');
-  insertConfig.run('banco', 'Banco Galicia');
-  insertConfig.run('titular', 'Asociación Club Tercer Tiempo Malargüe');
-  insertConfig.run('cuit', '30-71234567-9');
-  insertConfig.run('cbu', '0070123420000012345678');
-  insertConfig.run('alias', 'ACTTM2026');
-  insertConfig.run('tipo_cuenta', 'Cuenta Corriente Especial');
+  // Asegurar configuración bancaria oficial para transferencias y portal de socios
+  const updateConfig = db.prepare('INSERT OR REPLACE INTO configuracion_club (clave, valor) VALUES (?, ?)');
+  updateConfig.run('banco', 'BANCO NACION');
+  updateConfig.run('titular', 'Asociación Club Tercer Tiempo Malargüe');
+  updateConfig.run('cuit', '0');
+  updateConfig.run('cbu', '0110348740034817394276');
+  updateConfig.run('alias', 'ACTTM2026');
+  updateConfig.run('tipo_cuenta', 'Cuenta Corriente Especial');
+
+  // Asegurar que Atletismo tenga arancel 0 (incluido con cuota social)
+  db.prepare("UPDATE disciplinas SET arancel_mensual = 0 WHERE nombre LIKE '%Atletismo%'").run();
+
+  // Asegurar que Ramón Rojas (ATL-022) esté presente con cuota inicial de $10.000
+  const existeRamon = db.prepare('SELECT id FROM socios WHERE dni = ?').get('17080759');
+  let ramonId = existeRamon ? existeRamon.id : null;
+  if (!existeRamon) {
+    const resRamon = db.prepare(`
+      INSERT INTO socios (
+        numero_socio, nombre, apellido, dni, email, telefono, categoria_id, fecha_alta, estado,
+        fecha_nacimiento, edad, direccion, ocupacion, estado_civil, grupo_sanguineo, posee_obra_social, tutor_nombre
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Activo', ?, ?, ?, ?, ?, ?, 'NO', ?)
+    `).run(
+      'ATL-022', 'ROJAS', 'RAMON', '17080759', 'rrojasroco@gmail.com', '2604552146', 2, '2026-10-14',
+      '1965-10-27', 60, 'SALAS 508', 'jubilado', 'Soltero/a', 'A+', 'ramon rojas'
+    );
+    ramonId = resRamon.lastInsertRowid;
+    const discAtl = db.prepare("SELECT id FROM disciplinas WHERE nombre LIKE '%Atletismo%'").get();
+    if (discAtl) {
+      db.prepare('INSERT OR IGNORE INTO socio_disciplinas (socio_id, disciplina_id) VALUES (?, ?)').run(ramonId, discAtl.id);
+    }
+  }
+
+  // Garantizar cuota inicial de $10.000 para Ramón Rojas
+  if (ramonId) {
+    const cuotaRamon = db.prepare('SELECT id FROM cuotas WHERE socio_id = ?').get(ramonId);
+    if (!cuotaRamon) {
+      db.prepare(`
+        INSERT INTO cuotas (socio_id, periodo, mes, anio, concepto, monto_original, descuento, recargo, monto_total, fecha_vencimiento, estado, fecha_creacion)
+        VALUES (?, '2026-10', 10, 2026, 'Cuota Social (Socio Deportivo) + Atletismo', 10000, 0, 0, 10000, '2026-10-10', 'Pendiente', '2026-10-14')
+      `).run(ramonId);
+    } else {
+      db.prepare('UPDATE cuotas SET monto_original = 10000, monto_total = 10000 WHERE id = ?').run(cuotaRamon.id);
+    }
+  }
 
   // Verificar si ya tenemos el padrón real cargado (174 socios)
   const countSocios = db.prepare('SELECT COUNT(*) as count FROM socios').get().count;
